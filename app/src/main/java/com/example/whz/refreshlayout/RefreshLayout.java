@@ -11,6 +11,8 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.ListView;
+import android.widget.Scroller;
+import android.widget.TabHost;
 
 
 public class RefreshLayout extends ViewGroup{
@@ -18,6 +20,8 @@ public class RefreshLayout extends ViewGroup{
     public final String TAG = "RefreshLayout";
     private View mHeader;
     private View mTarget;
+
+    private Scroller mScroller;
 
     private int mCurrentOffsetTop;
     // 最小滑动距离
@@ -87,11 +91,13 @@ public class RefreshLayout extends ViewGroup{
         else{
             if(this.mRefreshing != refreshing){
                 this.enSureTarget();
+                Log.e(TAG,"transrefreshing"+refreshing);
                 this.mRefreshing = refreshing;
                 if(mState == State.LOADING){
                     mState = State.COMPLETE;
                     changeState(mState);
-                    postDelayed(delayToScrollTopRunnable,1000);
+
+                    postDelayed(delayToScrollTopRunnable,2000);
                 }
             }
 
@@ -102,8 +108,7 @@ public class RefreshLayout extends ViewGroup{
 
     private void enSureTarget(){
         if(mTarget == null) {
-            for(int i = 0;i<getChildCount();i++)
-            {
+            for(int i = 0;i<getChildCount();i++) {
                 View child = this.getChildAt(i);
                 if(!child.equals( mHeader)) {
                     mTarget = child;
@@ -116,13 +121,11 @@ public class RefreshLayout extends ViewGroup{
     public void setHeader(View view){
         if(view != null && view != mHeader){
             removeView(mHeader);
-
             ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
             if(layoutParams == null) {
                 layoutParams = new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT);
                 view.setLayoutParams(layoutParams);
             }
-
             mHeader = view;
             addView(mHeader);
         }
@@ -131,14 +134,11 @@ public class RefreshLayout extends ViewGroup{
 
     public RefreshLayout(Context context,AttributeSet attrs) {
         super(context,attrs);
-
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
-        Log.e(TAG,"touchSlop"+Integer.toString(mTouchSlop));
-
         RefreshHeader refreshHeader = new RefreshHeader(context);
         setHeader(refreshHeader);
         mRefreshing = false;
-
+        mScroller= new Scroller(getContext());
     }
 
 
@@ -198,6 +198,9 @@ public class RefreshLayout extends ViewGroup{
 
 
         // 如果isEnabled为false，或者子view能滚动，或者正在刷新，不拦截touch事件
+        Log.e(TAG,"canScrollUp"+canChildScrollUp());
+        Log.e(TAG,"enabled"+this.isEnabled());
+        Log.e(TAG,"refreshing"+mRefreshing);
         if (!this.isEnabled() /*|| this.mReturningToStart*/ || this.canChildScrollUp() || this.mRefreshing) {
             return false;
         }
@@ -214,6 +217,7 @@ public class RefreshLayout extends ViewGroup{
 
                 mCurrentOffsetTop = mTarget.getTop();
 
+                Log.e(TAG,"pointerIndex"+pointerIndex);
                 if(pointerIndex < 0)
                     return false;
                 mInitDownY = ev.getY(pointerIndex);
@@ -221,13 +225,19 @@ public class RefreshLayout extends ViewGroup{
                 break;
             case MotionEvent.ACTION_MOVE:
                 Log.e(TAG,"I_ACTION_MOVE");
+                Log.e(TAG,"State"+mState);
                 if(mActivePointId == INVALID_POINTER)
                     return false;
                 pointerIndex = ev.findPointerIndex(mActivePointId);
+                Log.e(TAG,"pointerIndex"+pointerIndex);
+
                 if(pointerIndex < 0)
                     return false;
                 float y = ev.getY(pointerIndex);
                 startDragging(y);
+                if (mIsBeingDragged){
+                    onTouchEvent(ev);
+                }
                 break;
 
             case MotionEvent.ACTION_POINTER_UP:
@@ -248,10 +258,16 @@ public class RefreshLayout extends ViewGroup{
     private void startDragging(float y){
         final float yDiff = y - mInitDownY;
         // 滑动距离要大于最小滑动距离，否则拦截事件
-        if(yDiff > mTouchSlop && !mIsBeingDragged){
+        Log.e(TAG,"yDiff"+yDiff);
+        if(yDiff > mTouchSlop && !mIsBeingDragged && mState == State.RESET){
             mInitMotionY = mInitDownY + mTouchSlop;
             mIsBeingDragged = true;
             Log.e(TAG,Float.toString(mInitMotionY));
+
+
+            mState = State.PULL;
+            changeState(mState);
+
 
         }
     }
@@ -308,10 +324,16 @@ public class RefreshLayout extends ViewGroup{
                     // 记录最近移动的偏移量
                     mLastMove =  overscrollTop;
 
+                    Log.e(TAG,"Dragged:"+mIsBeingDragged);
+
                     if (overscrollTop > 0) {
+                        Log.e(TAG,"over:"+overscrollTop);
                         //scrollTo(0,-(int)overscrollTop);
                         moveSpinner(overscrollTop);
                     } else {
+                        scrollTo(0,0);
+                        mState = State.RESET;
+                        changeState(mState);
                         return false;
                     }
                 }
@@ -346,11 +368,19 @@ public class RefreshLayout extends ViewGroup{
                 pointerIndex = ev.findPointerIndex(mActivePointId);
                 if (pointerIndex < 0)
                     return false;
+                final float y = ev.getY(pointerIndex);
                 if (mIsBeingDragged) {
                     mIsBeingDragged = false;
-                    finishSpinner();
+
+
+                    final float overscrollTop = (y - mInitMotionY) + mOffset;
+
+                    //scrollTo(0,-(int)overscrollTop);
+                    finishSpinner(overscrollTop);
+
                 }
                 mActivePointId = INVALID_POINTER;
+                mOffset = 0;
                 mLastMove = 0;
                 return false;
             }
@@ -376,35 +406,61 @@ public class RefreshLayout extends ViewGroup{
         mCurrentOffsetTop = mTarget.getTop();
         switch (mState) {
             case RESET:
-                changeState(State.PULL);
                 mState = State.PULL;
+                changeState(mState);
                 break;
             case PULL:
-                if(overscrollTop < mTotalDragDistance)
-                {
+                if(overscrollTop < mTotalDragDistance) {
                     scrollTo(0,-(int)overscrollTop);
+                    Log.e(TAG,Integer.toString(getScrollY()));
                 }
                 else{
+                    scrollTo(0,-(int)mTotalDragDistance);
                     changeState(State.PULLFULL);
                     mState = State.PULLFULL;
                 }
                 break;
             case PULLFULL:
-                if(overscrollTop < mTotalDragDistance)
-                {
+                if(overscrollTop < mTotalDragDistance) {
                     scrollTo(0,-(int)overscrollTop);
                     changeState(State.PULL);
                     mState = State.PULL;
                 }
                 break;
         }
+
+        Log.e(TAG,"State:"+mState);
     }
 
-    private void finishSpinner(){
+    @Override
+    public void computeScroll() {
+        super.computeScroll();
+        // 如果动画正在进行中，则返回 true，否则返回 false。
+        // 我们只需要针对 Scroller 正在运行的状态
+        if (mScroller.computeScrollOffset()) {
+
+            // 通过获取 Scroller 中 mCurrentX、mCurrentY 的值，直接设置为 mScrollX、mScrollY
+            // 在实际开发中，mCurrentX、mCurrentY 与 mScrollX、mScrollY 的关系由开发者自己定义
+            scrollTo(mScroller.getCurrX(),mScroller.getCurrY());
+            if (mScroller.getCurrX() == getScrollX()
+                    && mScroller.getCurrY() == getScrollY() ) {
+                postInvalidate();
+            }
+        }
+    }
+
+
+    private void finishSpinner(float overscrollTop){
         switch (mState){
             case PULL:
                 scrollTo(0,0);
+//                mScroller.forceFinished(true);
+//                Log.e(TAG,"getScrollY:"+getScrollY()+","+overscrollTop);
+//                mScroller.startScroll(0,(int)getScrollY(),0,(int)overscrollTop);
+//                invalidate();
+
                 mState = State.RESET;
+                changeState(mState);
                 break;
             case PULLFULL:
                 changeState(State.LOADING);
@@ -444,10 +500,13 @@ public class RefreshLayout extends ViewGroup{
     private Runnable delayToScrollTopRunnable = new Runnable() {
         @Override
         public void run() {
-
            mState = State.RESET;
            changeState(mState);
            scrollTo(0,0);
+//           mScroller.forceFinished(true);
+//           mScroller.startScroll(0,(int)getScrollY(),0,-(int)getScrollY(),2000);
+//           invalidate();
+
         }
     };
 
