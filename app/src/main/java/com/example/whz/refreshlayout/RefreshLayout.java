@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.widget.ListViewCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -196,12 +197,17 @@ public class RefreshLayout extends ViewGroup{
 //            this.mReturningToStart = false;
 //        }
 
-
         // 如果isEnabled为false，或者子view能滚动，或者正在刷新，不拦截touch事件
         Log.e(TAG,"canScrollUp"+canChildScrollUp());
         Log.e(TAG,"enabled"+this.isEnabled());
         Log.e(TAG,"refreshing"+mRefreshing);
         if (!this.isEnabled() /*|| this.mReturningToStart*/ || this.canChildScrollUp() || this.mRefreshing) {
+            return false;
+        }
+
+        // 这个条件判断是因为我的refreshlayout不同于swiperefreshlayout，有一个complete状态
+        // 并且complete到reset是在一个子线程异步执行的，所以要保证complete到reset之前，refreshlayout不处理事件
+        if(mState == State.COMPLETE){
             return false;
         }
 
@@ -376,7 +382,8 @@ public class RefreshLayout extends ViewGroup{
                     final float overscrollTop = (y - mInitMotionY) + mOffset;
 
                     //scrollTo(0,-(int)overscrollTop);
-                    finishSpinner(overscrollTop);
+                    if(overscrollTop > 0)
+                        finishSpinner(overscrollTop);
 
                 }
                 mActivePointId = INVALID_POINTER;
@@ -403,9 +410,11 @@ public class RefreshLayout extends ViewGroup{
     private void moveSpinner(float overscrollTop){
         //Log.e(TAG,Float.toString(overscrollTop));
 
+
         mCurrentOffsetTop = mTarget.getTop();
         switch (mState) {
             case RESET:
+
                 mState = State.PULL;
                 changeState(mState);
                 break;
@@ -426,6 +435,9 @@ public class RefreshLayout extends ViewGroup{
                     changeState(State.PULL);
                     mState = State.PULL;
                 }
+                else{
+                    scrollTo(0,-(int)mTotalDragDistance);
+                }
                 break;
         }
 
@@ -435,16 +447,13 @@ public class RefreshLayout extends ViewGroup{
     @Override
     public void computeScroll() {
         super.computeScroll();
-        // 如果动画正在进行中，则返回 true，否则返回 false。
-        // 我们只需要针对 Scroller 正在运行的状态
         if (mScroller.computeScrollOffset()) {
 
-            // 通过获取 Scroller 中 mCurrentX、mCurrentY 的值，直接设置为 mScrollX、mScrollY
-            // 在实际开发中，mCurrentX、mCurrentY 与 mScrollX、mScrollY 的关系由开发者自己定义
             scrollTo(mScroller.getCurrX(),mScroller.getCurrY());
             if (mScroller.getCurrX() == getScrollX()
                     && mScroller.getCurrY() == getScrollY() ) {
-                postInvalidate();
+                //postInvalidate();
+                invalidate();
             }
         }
     }
@@ -453,11 +462,11 @@ public class RefreshLayout extends ViewGroup{
     private void finishSpinner(float overscrollTop){
         switch (mState){
             case PULL:
-                scrollTo(0,0);
+                //scrollTo(0,0);
 //                mScroller.forceFinished(true);
 //                Log.e(TAG,"getScrollY:"+getScrollY()+","+overscrollTop);
-//                mScroller.startScroll(0,(int)getScrollY(),0,(int)overscrollTop);
-//                invalidate();
+                mScroller.startScroll(0,getScrollY(),0,(int)overscrollTop);
+                invalidate();
 
                 mState = State.RESET;
                 changeState(mState);
@@ -502,10 +511,10 @@ public class RefreshLayout extends ViewGroup{
         public void run() {
            mState = State.RESET;
            changeState(mState);
-           scrollTo(0,0);
+           //scrollTo(0,0);
 //           mScroller.forceFinished(true);
-//           mScroller.startScroll(0,(int)getScrollY(),0,-(int)getScrollY(),2000);
-//           invalidate();
+           mScroller.startScroll(0,getScrollY(),0,-getScrollY());
+           invalidate();
 
         }
     };
@@ -522,6 +531,8 @@ public class RefreshLayout extends ViewGroup{
             return this.mTarget instanceof ListView ? ListViewCompat.canScrollList((ListView)this.mTarget, -1) : this.mTarget.canScrollVertically(-1);
         }
     }
+
+    // 子view可以告知refreshlayout它是否可以刷新
 
     public void setOnChildScrollUpCallback(@Nullable RefreshLayout.OnChildScrollUpCallback callback) {
         this.mChildScrollUpCallback = callback;
