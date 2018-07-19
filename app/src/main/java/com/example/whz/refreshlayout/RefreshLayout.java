@@ -24,6 +24,9 @@ public class RefreshLayout extends ViewGroup{
 
     private Scroller mScroller;
 
+
+    private float mPercent = 0.0f;
+
     private int mCurrentOffsetTop;
     // 最小滑动距离
     private int mTouchSlop;
@@ -136,7 +139,8 @@ public class RefreshLayout extends ViewGroup{
     public RefreshLayout(Context context,AttributeSet attrs) {
         super(context,attrs);
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
-        RefreshHeader refreshHeader = new RefreshHeader(context);
+        //RefreshHeader refreshHeader = new RefreshHeader(context);
+        CoolRefreshHeader refreshHeader = new CoolRefreshHeader(context);
         setHeader(refreshHeader);
         mRefreshing = false;
         mScroller= new Scroller(getContext());
@@ -183,7 +187,7 @@ public class RefreshLayout extends ViewGroup{
         child.layout(childLeft, childTop, childLeft + childWidth, childTop + childHeight);
 
         int headerWidth = mHeader.getMeasuredWidth();
-        mHeader.layout((width/2 - headerWidth/2),-mHeaderHeight + mCurrentOffsetTop,(width/2 + headerWidth/2),mCurrentOffsetTop);
+        mHeader.layout((width/2 - headerWidth/2),-mHeaderHeight + mCurrentOffsetTop,(width/2 + headerWidth/2),0);
     }
 
 
@@ -222,6 +226,7 @@ public class RefreshLayout extends ViewGroup{
                 pointerIndex = ev.findPointerIndex(mActivePointId);
 
                 mCurrentOffsetTop = mTarget.getTop();
+                Log.e(TAG,"offset"+mCurrentOffsetTop);
 
                 Log.e(TAG,"pointerIndex"+pointerIndex);
                 if(pointerIndex < 0)
@@ -272,7 +277,7 @@ public class RefreshLayout extends ViewGroup{
 
 
             mState = State.PULL;
-            changeState(mState);
+            //changeState(mState);
 
 
         }
@@ -322,6 +327,9 @@ public class RefreshLayout extends ViewGroup{
                 if (pointerIndex < 0)
                     return false;
                 final float y = ev.getY(pointerIndex);
+
+
+
 
                 startDragging(y);
                 if (mIsBeingDragged) {
@@ -410,23 +418,32 @@ public class RefreshLayout extends ViewGroup{
     private void moveSpinner(float overscrollTop){
         //Log.e(TAG,Float.toString(overscrollTop));
 
-
-        mCurrentOffsetTop = mTarget.getTop();
         switch (mState) {
             case RESET:
 
                 mState = State.PULL;
-                changeState(mState);
+                //changeState(mState);
                 break;
             case PULL:
                 if(overscrollTop < mTotalDragDistance) {
+                    mPercent = overscrollTop / mTotalDragDistance;
+                    changeState(mState);
                     scrollTo(0,-(int)overscrollTop);
                     Log.e(TAG,Integer.toString(getScrollY()));
                 }
                 else{
                     scrollTo(0,-(int)mTotalDragDistance);
-                    changeState(State.PULLFULL);
-                    mState = State.PULLFULL;
+//                    scrollTo(0,-(int)overscrollTop);
+
+
+//                    LayoutParams params=new LayoutParams (LayoutParams.MATCH_PARENT,(int)overscrollTop);
+//
+//                    mHeader.setLayoutParams(params);
+
+
+
+                   // changeState(State.PULLFULL);
+                   // mState = State.PULLFULL;
                 }
                 break;
             case PULLFULL:
@@ -437,6 +454,7 @@ public class RefreshLayout extends ViewGroup{
                 }
                 else{
                     scrollTo(0,-(int)mTotalDragDistance);
+
                 }
                 break;
         }
@@ -483,6 +501,7 @@ public class RefreshLayout extends ViewGroup{
         this.mState = state;
 
         RefreshHeaderInterface refreshHeader = this.mHeader instanceof RefreshHeaderInterface ? ((RefreshHeaderInterface) this.mHeader) : null;
+
         if (refreshHeader != null) {
             switch (state) {
                 case RESET:
@@ -502,6 +521,25 @@ public class RefreshLayout extends ViewGroup{
                     break;
             }
         }
+
+        RefreshHeaderFollowInterface x = this.mHeader instanceof RefreshHeaderFollowInterface ?((RefreshHeaderFollowInterface) this.mHeader):null;
+        if(x != null){
+            switch (state) {
+                case RESET:
+                    break;
+                case PULL:
+                    x.pull(mPercent);
+                    Log.e(TAG,"mPercent"+mPercent);
+                    break;
+                case PULLFULL:
+                    break;
+                case LOADING:
+                    break;
+                case COMPLETE:
+                    break;
+            }
+        }
+
     }
 
 

@@ -78,4 +78,6 @@ public class RefreshHeader extends FrameLayout implements RefreshHeaderInterface
         successIcon.setVisibility(VISIBLE);
         textView.setText(getResources().getText(R.string.qq_header_completed));
     }
+
+
 }
