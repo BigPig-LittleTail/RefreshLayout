@@ -11,6 +11,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.ScaleAnimation;
 import android.widget.ListView;
 import android.widget.Scroller;
 import android.widget.TabHost;
@@ -26,6 +28,7 @@ public class RefreshLayout extends ViewGroup{
 
 
     private float mPercent = 0.0f;
+    private Animation mScaleAnimation;
 
     private int mCurrentOffsetTop;
     // 最小滑动距离
@@ -46,6 +49,9 @@ public class RefreshLayout extends ViewGroup{
     private float mLastMove;
     // 已经偏移的偏移量
     private float mOffset;
+
+    private float mSavedOffset;
+
     // 刷新监控
     private RefreshLayout.OnRefreshListener mOnRefreshListener;
     // 子View是否能够滚动的回调
@@ -67,6 +73,8 @@ public class RefreshLayout extends ViewGroup{
     private boolean mRefreshing;
     // 是否正在下拉
     private boolean mIsBeingDragged;
+
+    private boolean mIsSecondPoninterMove;
 
     // 状态
     private State mState = State.RESET;
@@ -139,8 +147,8 @@ public class RefreshLayout extends ViewGroup{
     public RefreshLayout(Context context,AttributeSet attrs) {
         super(context,attrs);
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
-        //RefreshHeader refreshHeader = new RefreshHeader(context);
-        CoolRefreshHeader refreshHeader = new CoolRefreshHeader(context);
+        RefreshHeader refreshHeader = new RefreshHeader(context);
+        //CoolRefreshHeader refreshHeader = new CoolRefreshHeader(context);
         setHeader(refreshHeader);
         mRefreshing = false;
         mScroller= new Scroller(getContext());
@@ -187,7 +195,7 @@ public class RefreshLayout extends ViewGroup{
         child.layout(childLeft, childTop, childLeft + childWidth, childTop + childHeight);
 
         int headerWidth = mHeader.getMeasuredWidth();
-        mHeader.layout((width/2 - headerWidth/2),-mHeaderHeight + mCurrentOffsetTop,(width/2 + headerWidth/2),0);
+        mHeader.layout((width/2 - headerWidth/2),-mHeaderHeight + mCurrentOffsetTop,(width/2 + headerWidth/2),mCurrentOffsetTop);
     }
 
 
@@ -222,6 +230,7 @@ public class RefreshLayout extends ViewGroup{
                 mActivePointId = ev.getPointerId(0);
                 mIsBeingDragged = false;
                 mOffset = 0;
+                mIsSecondPoninterMove = false;
 
                 pointerIndex = ev.findPointerIndex(mActivePointId);
 
@@ -269,15 +278,14 @@ public class RefreshLayout extends ViewGroup{
     private void startDragging(float y){
         final float yDiff = y - mInitDownY;
         // 滑动距离要大于最小滑动距离，否则拦截事件
-        Log.e(TAG,"yDiff"+yDiff);
+        //Log.e(TAG,"yDiff"+yDiff);
         if(yDiff > mTouchSlop && !mIsBeingDragged && mState == State.RESET){
             mInitMotionY = mInitDownY + mTouchSlop;
             mIsBeingDragged = true;
-            Log.e(TAG,Float.toString(mInitMotionY));
+            Log.e(TAG,"mInitMotionY"+mInitMotionY);
 
 
-            mState = State.PULL;
-            //changeState(mState);
+            changeState(State.PULL);
 
 
         }
@@ -294,9 +302,11 @@ public class RefreshLayout extends ViewGroup{
 
             Log.e(TAG,Integer.toString(mActivePointId));
 
+            Log.e(TAG,"mLastMove"+mLastMove);
             // 活跃手指抬起，偏移量更新，初始点击位置还原
-            mOffset = mLastMove;
+            mOffset = mIsSecondPoninterMove?mSavedOffset:mLastMove;
             mInitMotionY = mSavedY;
+            Log.e(TAG,"mInitMotionY"+mInitMotionY);
         }
     }
 
@@ -328,26 +338,21 @@ public class RefreshLayout extends ViewGroup{
                     return false;
                 final float y = ev.getY(pointerIndex);
 
-
-
-
                 startDragging(y);
                 if (mIsBeingDragged) {
                     // 加上偏移量
                     final float overscrollTop = (y - mInitMotionY) + mOffset;
+                    mIsSecondPoninterMove = false;
+
+                    Log.e(TAG,"overscrollTop"+overscrollTop);
                     // 记录最近移动的偏移量
                     mLastMove =  overscrollTop;
 
-                    Log.e(TAG,"Dragged:"+mIsBeingDragged);
-
                     if (overscrollTop > 0) {
-                        Log.e(TAG,"over:"+overscrollTop);
-                        //scrollTo(0,-(int)overscrollTop);
                         moveSpinner(overscrollTop);
                     } else {
                         scrollTo(0,0);
-                        mState = State.RESET;
-                        changeState(mState);
+                        changeState(State.RESET);
                         return false;
                     }
                 }
@@ -360,8 +365,13 @@ public class RefreshLayout extends ViewGroup{
                     return false;
                 }
                 mActivePointId = ev.getPointerId(pointerIndex);
+                mIsSecondPoninterMove = true;
                 // 偏移量更新
+                mSavedOffset = mOffset;
                 mOffset = mLastMove;
+
+                Log.e(TAG,"mOffset"+mOffset);
+
                 // 上一个手指的初始点击位置保存
                 mSavedY = mInitMotionY;
 
@@ -369,6 +379,8 @@ public class RefreshLayout extends ViewGroup{
                 pointerIndex = ev.findPointerIndex(mActivePointId);
                 mInitMotionY = ev.getY(pointerIndex);
                 Log.e(TAG,Float.toString(mInitMotionY));
+
+                Log.e(TAG,"mInitMotionY"+mInitMotionY);
 
                 break;
             }
@@ -420,9 +432,7 @@ public class RefreshLayout extends ViewGroup{
 
         switch (mState) {
             case RESET:
-
-                mState = State.PULL;
-                //changeState(mState);
+                changeState(State.PULL);
                 break;
             case PULL:
                 if(overscrollTop < mTotalDragDistance) {
@@ -433,24 +443,13 @@ public class RefreshLayout extends ViewGroup{
                 }
                 else{
                     scrollTo(0,-(int)mTotalDragDistance);
-//                    scrollTo(0,-(int)overscrollTop);
-
-
-//                    LayoutParams params=new LayoutParams (LayoutParams.MATCH_PARENT,(int)overscrollTop);
-//
-//                    mHeader.setLayoutParams(params);
-
-
-
-                   // changeState(State.PULLFULL);
-                   // mState = State.PULLFULL;
+                    changeState(State.PULLFULL);
                 }
                 break;
             case PULLFULL:
                 if(overscrollTop < mTotalDragDistance) {
                     scrollTo(0,-(int)overscrollTop);
                     changeState(State.PULL);
-                    mState = State.PULL;
                 }
                 else{
                     scrollTo(0,-(int)mTotalDragDistance);
@@ -459,7 +458,6 @@ public class RefreshLayout extends ViewGroup{
                 break;
         }
 
-        Log.e(TAG,"State:"+mState);
     }
 
     @Override
@@ -480,14 +478,9 @@ public class RefreshLayout extends ViewGroup{
     private void finishSpinner(float overscrollTop){
         switch (mState){
             case PULL:
-                //scrollTo(0,0);
-//                mScroller.forceFinished(true);
-//                Log.e(TAG,"getScrollY:"+getScrollY()+","+overscrollTop);
                 mScroller.startScroll(0,getScrollY(),0,(int)overscrollTop);
                 invalidate();
-
-                mState = State.RESET;
-                changeState(mState);
+                changeState(State.RESET);
                 break;
             case PULLFULL:
                 changeState(State.LOADING);
@@ -498,6 +491,7 @@ public class RefreshLayout extends ViewGroup{
     }
 
     private void changeState(State state) {
+        boolean nowIsPull = state != this.mState;
         this.mState = state;
 
         RefreshHeaderInterface refreshHeader = this.mHeader instanceof RefreshHeaderInterface ? ((RefreshHeaderInterface) this.mHeader) : null;
@@ -508,7 +502,9 @@ public class RefreshLayout extends ViewGroup{
                     refreshHeader.reset();
                     break;
                 case PULL:
-                    refreshHeader.pull();
+                    if(nowIsPull){
+                        refreshHeader.pull();
+                    }
                     break;
                 case PULLFULL:
                     refreshHeader.pullFull();
@@ -529,13 +525,16 @@ public class RefreshLayout extends ViewGroup{
                     break;
                 case PULL:
                     x.pull(mPercent);
-                    Log.e(TAG,"mPercent"+mPercent);
                     break;
                 case PULLFULL:
+                    bringToFront();
+                    x.pullfull();
                     break;
                 case LOADING:
+                    x.refreshing();
                     break;
                 case COMPLETE:
+                    x.complete();
                     break;
             }
         }
@@ -547,18 +546,13 @@ public class RefreshLayout extends ViewGroup{
     private Runnable delayToScrollTopRunnable = new Runnable() {
         @Override
         public void run() {
-           mState = State.RESET;
-           changeState(mState);
-           //scrollTo(0,0);
-//           mScroller.forceFinished(true);
+           changeState(State.RESET);
+
            mScroller.startScroll(0,getScrollY(),0,-getScrollY());
            invalidate();
 
         }
     };
-
-
-
 
 
 

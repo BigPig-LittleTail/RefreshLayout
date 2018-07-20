@@ -6,6 +6,12 @@
     xmlns:tools="http://schemas.android.com/tools">
     <com.example.whz.refreshlayout.RefreshView
         android:id="@+id/refreshView"
+        android:layout_centerInParent="true"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <!--<Button-->
+        <!--android:id="@+id/tryButton"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content" />-->
 </RelativeLayout>
