@@ -55,9 +55,9 @@ public class TestActivity extends AppCompatActivity {
                         testAdapter m = new testAdapter(test);
                         recyclerView.setAdapter(m);
 
-                        refreshLayout.setRefreshing(false);
+                        refreshLayout.setRefreshing(false,false);
                     }
-                },2000);
+                },6000);
 
 
             }

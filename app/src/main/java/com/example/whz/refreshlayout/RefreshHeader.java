@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 public class RefreshHeader extends FrameLayout implements RefreshHeaderInterface{
@@ -15,7 +16,7 @@ public class RefreshHeader extends FrameLayout implements RefreshHeaderInterface
     private Animation rotate_infinite;
     private TextView textView;
     private View arrowIcon;
-    private View successIcon;
+    private ImageView successIcon;
     private View loadingIcon;
 
     public RefreshHeader(Context context) {
@@ -76,7 +77,17 @@ public class RefreshHeader extends FrameLayout implements RefreshHeaderInterface
         loadingIcon.setVisibility(INVISIBLE);
         loadingIcon.clearAnimation();
         successIcon.setVisibility(VISIBLE);
+        successIcon.setImageResource(R.drawable.enm);
         textView.setText(getResources().getText(R.string.qq_header_completed));
+    }
+
+    @Override
+    public void fail(){
+        loadingIcon.setVisibility(INVISIBLE);
+        loadingIcon.clearAnimation();
+        successIcon.setImageResource(R.mipmap.enf);
+        successIcon.setVisibility(VISIBLE);
+        textView.setText(getResources().getText(R.string.qq_header_fail));
     }
 
 

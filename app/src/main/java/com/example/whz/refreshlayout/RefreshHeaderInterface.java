@@ -6,4 +6,5 @@ public interface RefreshHeaderInterface {
     void refreshing();
     void complete();
     void pullFull();
+    void fail();
 }

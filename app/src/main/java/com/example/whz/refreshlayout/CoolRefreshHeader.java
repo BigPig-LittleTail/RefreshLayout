@@ -41,7 +41,7 @@ public class CoolRefreshHeader extends FrameLayout implements RefreshHeaderFollo
     @Override
     public void refreshing(){
         mRefreshView.setmState(State.LOADING);
-        mLoadingAnimation.setDuration(3000);
+        mLoadingAnimation.setDuration(2000);
         mLoadingAnimation.setRepeatCount(Animation.INFINITE);
         mRefreshView.startAnimation(mLoadingAnimation);
     }
@@ -52,6 +52,13 @@ public class CoolRefreshHeader extends FrameLayout implements RefreshHeaderFollo
         mRefreshView.setmState(State.COMPLETE);
         mRefreshView.complete();
 
+    }
+
+    @Override
+    public void fail(){
+        mRefreshView.clearAnimation();
+        mRefreshView.setmState(State.FAIL);
+        mRefreshView.fail();
     }
 
 }

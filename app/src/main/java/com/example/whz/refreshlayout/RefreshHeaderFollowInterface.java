@@ -5,4 +5,5 @@ public interface RefreshHeaderFollowInterface {
     void refreshing();
     void complete();
     void pullfull();
+    void fail();
 }

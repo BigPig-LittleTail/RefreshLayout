@@ -50,7 +50,6 @@ public class MyView  extends View {
         float x = (getWidth() - y * 2) / 2;
         canvas.drawColor(Color.WHITE);
 
-        Log.e("XXX","onDraw");
         if(state == 0)
         {
             oval.set(x, y,
@@ -66,27 +65,43 @@ public class MyView  extends View {
                 mPaint.setStrokeWidth((float) 3.0);
                 oval.set(x, y,
                         getWidth() - x, getHeight() - y);
-                canvas.drawArc(oval, 270, 360, false, mPaint);
-
-                mPaint.setStrokeWidth((float) 4.0);
-                mPaint.setColor(Color.WHITE);
-
-                canvas.drawArc(oval, 270, degree*360, false, mPaint);
+                canvas.drawArc(oval, 270+360*degree, 270-270*degree, false, mPaint);
                 if(degree == 1.0f){
                     type = 1;
                 }
             }
             else{
-                mPaint.setColor(Color.WHITE);
-                mPaint.setStrokeWidth((float) 4.0);
-
                 oval.set(x, y,
                         getWidth() - x, getHeight() - y);
-                canvas.drawArc(oval, 270, 360, false, mPaint);
+                if(degree < 0.33333333333333f){
+                    mPaint.setColor(Color.BLUE);
+                    mPaint.setStrokeWidth((float) 3.0);
+                    canvas.drawArc(oval, 270, 540*degree, false, mPaint);
+                }
+                else if(degree <0.666666666666f){
+                    mPaint.setColor(Color.BLUE);
+                    mPaint.setStrokeWidth((float) 3.0);
+                    canvas.drawArc(oval, 270, 180, false, mPaint);
+                    canvas.drawArc(oval,90,540*degree -180,false,mPaint);
+                    mPaint.setColor(Color.WHITE);
+                    mPaint.setStrokeWidth((float) 4.0);
+                    canvas.drawArc(oval, 270, 540*degree -180, false, mPaint);
+                }
+                else{
+                    mPaint.setColor(Color.BLUE);
+                    mPaint.setStrokeWidth((float) 3.0);
+                    canvas.drawArc(oval, 90, 180, false, mPaint);
+                    mPaint.setColor(Color.WHITE);
+                    mPaint.setStrokeWidth((float) 4.0);
+                    canvas.drawArc(oval, 90, 540*degree -360, false, mPaint);
 
-                mPaint.setColor(Color.BLUE);
-                mPaint.setStrokeWidth((float) 3.0);
-                canvas.drawArc(oval, 270, degree*360, false, mPaint);
+                }
+
+
+
+//                mPaint.setColor(Color.BLUE);
+//                mPaint.setStrokeWidth((float) 3.0);
+//                canvas.drawArc(oval, 270+degree*360, degree*180, false, mPaint);
                 if(degree == 1.0f){
                     type = 0;
                 }

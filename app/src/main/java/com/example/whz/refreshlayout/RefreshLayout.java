@@ -45,12 +45,11 @@ public class RefreshLayout extends ViewGroup{
     // 保存的手指位置信息
     private float mSavedY;
     // mLastMove 和 mOffset用来解决多指触控偏移量问题
-    // 上一次ACTION_MOVE的偏移量
-    private float mLastMove;
     // 已经偏移的偏移量
-    private float mOffset;
+    private float mOffset1;
+    private float mOffset2;
+    private float mTotalOffset;
 
-    private float mSavedOffset;
 
     // 刷新监控
     private RefreshLayout.OnRefreshListener mOnRefreshListener;
@@ -74,7 +73,8 @@ public class RefreshLayout extends ViewGroup{
     // 是否正在下拉
     private boolean mIsBeingDragged;
 
-    private boolean mIsSecondPoninterMove;
+    private boolean mIsSecondPointerDown;
+    private boolean mIsSecondPointerMove;
 
     // 状态
     private State mState = State.RESET;
@@ -93,12 +93,11 @@ public class RefreshLayout extends ViewGroup{
     * false和true执行else，本来在刷新态，置为非刷新态，就进入刷新完成状态
     *
     * */
-    public void setRefreshing(boolean refreshing){
+    public void setRefreshing(boolean refreshing,boolean refreshResult){
         if (refreshing && this.mRefreshing != refreshing) {
             this.mRefreshing = refreshing;
-            mState = State.LOADING;
-            changeState(mState);
-            scrollTo(0,mHeaderHeight);
+            changeState(State.LOADING);
+            scrollTo(0,-(int)mTotalDragDistance);
         }
         else{
             if(this.mRefreshing != refreshing){
@@ -106,9 +105,12 @@ public class RefreshLayout extends ViewGroup{
                 Log.e(TAG,"transrefreshing"+refreshing);
                 this.mRefreshing = refreshing;
                 if(mState == State.LOADING){
-                    mState = State.COMPLETE;
-                    changeState(mState);
-
+                    if(refreshResult){
+                        changeState(State.COMPLETE);
+                    }
+                    else{
+                        changeState(State.FAIL);
+                    }
                     postDelayed(delayToScrollTopRunnable,2000);
                 }
             }
@@ -229,8 +231,11 @@ public class RefreshLayout extends ViewGroup{
                 Log.e(TAG,"I_ACTION_DOWN");
                 mActivePointId = ev.getPointerId(0);
                 mIsBeingDragged = false;
-                mOffset = 0;
-                mIsSecondPoninterMove = false;
+                mTotalOffset = 0;
+                mOffset1 = 0;
+                mOffset2 = 0;
+                mIsSecondPointerMove = false;
+                mIsSecondPointerDown = false;
 
                 pointerIndex = ev.findPointerIndex(mActivePointId);
 
@@ -302,12 +307,15 @@ public class RefreshLayout extends ViewGroup{
 
             Log.e(TAG,Integer.toString(mActivePointId));
 
-            Log.e(TAG,"mLastMove"+mLastMove);
-            // 活跃手指抬起，偏移量更新，初始点击位置还原
-            mOffset = mIsSecondPoninterMove?mSavedOffset:mLastMove;
+            mTotalOffset -= mOffset1;
+
+            mTotalOffset = mIsSecondPointerDown != mIsSecondPointerMove?mTotalOffset:mTotalOffset+mOffset2;
+
+
             mInitMotionY = mSavedY;
             Log.e(TAG,"mInitMotionY"+mInitMotionY);
         }
+        mIsSecondPointerDown = mIsSecondPointerMove = false;
     }
 
 
@@ -338,17 +346,22 @@ public class RefreshLayout extends ViewGroup{
                     return false;
                 final float y = ev.getY(pointerIndex);
 
+                mIsSecondPointerMove = mIsSecondPointerDown;
                 startDragging(y);
                 if (mIsBeingDragged) {
                     // 加上偏移量
-                    final float overscrollTop = (y - mInitMotionY) + mOffset;
-                    mIsSecondPoninterMove = false;
+                    final float overscrollTop = (y - mInitMotionY) + mTotalOffset;
 
-                    Log.e(TAG,"overscrollTop"+overscrollTop);
-                    // 记录最近移动的偏移量
-                    mLastMove =  overscrollTop;
+
 
                     if (overscrollTop > 0) {
+                        if(mIsSecondPointerDown){
+                            mOffset2 = (y- mInitMotionY);
+                        }
+                        else{
+                            mOffset1 = (y- mInitMotionY);
+                        }
+
                         moveSpinner(overscrollTop);
                     } else {
                         scrollTo(0,0);
@@ -365,19 +378,15 @@ public class RefreshLayout extends ViewGroup{
                     return false;
                 }
                 mActivePointId = ev.getPointerId(pointerIndex);
-                mIsSecondPoninterMove = true;
-                // 偏移量更新
-                mSavedOffset = mOffset;
-                mOffset = mLastMove;
 
-                Log.e(TAG,"mOffset"+mOffset);
+                mIsSecondPointerDown = true;
 
                 // 上一个手指的初始点击位置保存
                 mSavedY = mInitMotionY;
-
+                mTotalOffset += mOffset1;
                 // 获取新手指的点击位置
                 pointerIndex = ev.findPointerIndex(mActivePointId);
-                mInitMotionY = ev.getY(pointerIndex);
+                mInitDownY = mInitMotionY = ev.getY(pointerIndex);
                 Log.e(TAG,Float.toString(mInitMotionY));
 
                 Log.e(TAG,"mInitMotionY"+mInitMotionY);
@@ -399,7 +408,7 @@ public class RefreshLayout extends ViewGroup{
                     mIsBeingDragged = false;
 
 
-                    final float overscrollTop = (y - mInitMotionY) + mOffset;
+                    final float overscrollTop = (y - mInitMotionY) + mTotalOffset;
 
                     //scrollTo(0,-(int)overscrollTop);
                     if(overscrollTop > 0)
@@ -407,8 +416,9 @@ public class RefreshLayout extends ViewGroup{
 
                 }
                 mActivePointId = INVALID_POINTER;
-                mOffset = 0;
-                mLastMove = 0;
+                mTotalOffset = 0;
+                mOffset1 = 0;
+                mOffset2 = 0;
                 return false;
             }
             case MotionEvent.ACTION_CANCEL:
@@ -478,7 +488,7 @@ public class RefreshLayout extends ViewGroup{
     private void finishSpinner(float overscrollTop){
         switch (mState){
             case PULL:
-                mScroller.startScroll(0,getScrollY(),0,(int)overscrollTop);
+                mScroller.startScroll(0,getScrollY(),0,-getScrollY());
                 invalidate();
                 changeState(State.RESET);
                 break;
@@ -515,6 +525,9 @@ public class RefreshLayout extends ViewGroup{
                 case COMPLETE:
                     refreshHeader.complete();
                     break;
+                case FAIL:
+                    refreshHeader.fail();
+                    break;
             }
         }
 
@@ -527,7 +540,6 @@ public class RefreshLayout extends ViewGroup{
                     x.pull(mPercent);
                     break;
                 case PULLFULL:
-                    bringToFront();
                     x.pullfull();
                     break;
                 case LOADING:
@@ -536,6 +548,8 @@ public class RefreshLayout extends ViewGroup{
                 case COMPLETE:
                     x.complete();
                     break;
+                case FAIL:
+                    x.fail();
             }
         }
 
