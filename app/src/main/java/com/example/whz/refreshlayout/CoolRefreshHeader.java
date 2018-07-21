@@ -18,6 +18,8 @@ public class CoolRefreshHeader extends FrameLayout implements RefreshHeaderFollo
         super(context,attr);
         inflate(context,R.layout.activity_try,this);
         mRefreshView = findViewById(R.id.refreshView);
+
+        // 用animation驱动RefreshView的绘制
         mLoadingAnimation = new Animation() {
             @Override
             protected void applyTransformation(float interpolatedTime, Transformation t) {
@@ -41,7 +43,7 @@ public class CoolRefreshHeader extends FrameLayout implements RefreshHeaderFollo
     @Override
     public void refreshing(){
         mRefreshView.setmState(State.LOADING);
-        mLoadingAnimation.setDuration(2000);
+        mLoadingAnimation.setDuration(1000);
         mLoadingAnimation.setRepeatCount(Animation.INFINITE);
         mRefreshView.startAnimation(mLoadingAnimation);
     }
