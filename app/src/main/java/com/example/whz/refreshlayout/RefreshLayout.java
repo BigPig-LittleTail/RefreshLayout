@@ -245,6 +245,8 @@ public class RefreshLayout extends ViewGroup{
 
                 mInitDownY = ev.getY(pointerIndex);
 
+                allPointersInformation.put(mActivePointId,new PointerInformation(0,mInitDownY,false));
+
                 break;
             case MotionEvent.ACTION_MOVE:
                 Log.e(TAG,"I_ACTION_MOVE");
@@ -255,14 +257,27 @@ public class RefreshLayout extends ViewGroup{
                 if(pointerIndex < 0)
                     return false;
                 float y = ev.getY(pointerIndex);
+
+                Log.e(TAG,"mActivePointId"+mActivePointId);
                 startDragging(y);
                 // 新建当前活动手指的信息，存在allPointersInformation中
-                allPointersInformation.put(mActivePointId,new PointerInformation(0,mInitMotionY,false));
+
                 if (mIsBeingDragged){
                     onTouchEvent(ev);
                 }
                 break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                Log.e(TAG,"ACTION_POINTER_DOWN");
+                pointerIndex = ev.getActionIndex();
+                if (pointerIndex < 0) {
+                    return false;
+                }
+                mActivePointId = ev.getPointerId(pointerIndex);
+                mInitDownY = ev.getY(pointerIndex);
 
+                allPointersInformation.put(mActivePointId,new PointerInformation(0,mInitDownY,false));
+                Log.e(TAG,"pointer_Y"+ev.getY(pointerIndex));
+                break;
             case MotionEvent.ACTION_POINTER_UP:
                 Log.e(TAG,"I_ACTION_POINTER_UP");
                 onSecondaryPointerUp(ev);
@@ -272,6 +287,7 @@ public class RefreshLayout extends ViewGroup{
             case MotionEvent.ACTION_CANCEL:
                 mIsBeingDragged = false;
                 mActivePointId = INVALID_POINTER;
+                allPointersInformation.clear();
                 break;
 
         }
@@ -284,6 +300,8 @@ public class RefreshLayout extends ViewGroup{
         //Log.e(TAG,"yDiff"+yDiff);
         if(yDiff > mTouchSlop && !mIsBeingDragged && mState == State.RESET){
             mInitMotionY = mInitDownY + mTouchSlop;
+            allPointersInformation.get(mActivePointId).mInitMotionY = mInitMotionY;
+
             mIsBeingDragged = true;
             changeState(State.PULL);
         }
@@ -299,6 +317,8 @@ public class RefreshLayout extends ViewGroup{
             final int newPointerIndex = pointerIndex == 0 ?1:0;
             mActivePointId = ev.getPointerId(newPointerIndex);
 
+            Log.e(TAG,"mActivePointId" + mActivePointId);
+
             PointerInformation nowActivePointerInfo = allPointersInformation.get(mActivePointId);
 
             // 总偏移减去当前活跃手指曾经作出的偏移
@@ -307,6 +327,7 @@ public class RefreshLayout extends ViewGroup{
             mTotalOffset = upPointerInfo.mHasMoved ? mTotalOffset+upPointerInfo.mPointerOffset:mTotalOffset;
             // 还原当前活跃手指的InitMotionY
             mInitMotionY = nowActivePointerInfo.mInitMotionY;
+            Log.e(TAG,"mInitMotionY"+mInitMotionY);
         }
         // 移除抬起手指的信息
         allPointersInformation.delete(pointerId);
@@ -336,6 +357,7 @@ public class RefreshLayout extends ViewGroup{
             case MotionEvent.ACTION_MOVE: {
                 Log.e(TAG, "ACTION_MOVE");
                 pointerIndex = ev.findPointerIndex(mActivePointId);
+                Log.e(TAG,"mActivePointId"+mActivePointId);
                 if (pointerIndex < 0)
                     return false;
                 final float y = ev.getY(pointerIndex);
@@ -347,7 +369,7 @@ public class RefreshLayout extends ViewGroup{
                 activePointerInfo.mHasMoved = true;
 
 
-                startDragging(y);
+                //startDragging(y);
                 if (mIsBeingDragged) {
                     // 加上偏移量
                     final float overscrollTop = (y - mInitMotionY) + mTotalOffset;
@@ -365,6 +387,7 @@ public class RefreshLayout extends ViewGroup{
             }
             case MotionEvent.ACTION_POINTER_DOWN: {
                 // 获取当前活跃手指的信息
+                Log.e(TAG,"ACTION_POINTER_DOWN");
                 PointerInformation nowActivePointerInfo = allPointersInformation.get(mActivePointId);
                 pointerIndex = ev.getActionIndex();
                 if (pointerIndex < 0) {
