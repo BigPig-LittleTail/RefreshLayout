@@ -2,16 +2,10 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="60dp"
-    android:background="#303030"
-    xmlns:tools="http://schemas.android.com/tools">
+    android:background="#FFFFFF">
     <com.example.whz.refreshlayout.RefreshView
         android:id="@+id/refreshView"
         android:layout_centerInParent="true"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
-
-    <!--<Button-->
-        <!--android:id="@+id/tryButton"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content" />-->
 </RelativeLayout>

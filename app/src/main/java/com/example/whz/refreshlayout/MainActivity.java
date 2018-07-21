@@ -12,8 +12,9 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
-public class TestActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity {
 
     private RefreshLayout refreshLayout;
     private RecyclerView recyclerView;
@@ -26,7 +27,7 @@ public class TestActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_test);
+        setContentView(R.layout.activity_main);
         refreshLayout = findViewById(R.id.testRefreshLayout);
         recyclerView = findViewById(R.id.recyclerView);
 
@@ -81,14 +82,14 @@ public class TestActivity extends AppCompatActivity {
 
         class ViewHolder extends RecyclerView.ViewHolder{
             TextView textView;
-            public ViewHolder(View view){
+            private ViewHolder(View view){
                 super(view);
                 textView = view.findViewById(R.id.testText);
 
             }
         }
 
-        public testAdapter(ArrayList<Integer> m){
+        private testAdapter(ArrayList<Integer> m){
             this.m = m;
         }
 
@@ -108,7 +109,7 @@ public class TestActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(ViewHolder holder,int position){
-            holder.textView.setText(Integer.toString(m.get(position)));
+            holder.textView.setText(String.format(Locale.CHINA,"%d",m.get(position)));
         }
 
         @Override

@@ -16,7 +16,7 @@ public class CoolRefreshHeader extends FrameLayout implements RefreshHeaderFollo
 
     public CoolRefreshHeader(Context context, AttributeSet attr){
         super(context,attr);
-        inflate(context,R.layout.activity_try,this);
+        inflate(context,R.layout.cool_refresh,this);
         mRefreshView = findViewById(R.id.refreshView);
 
         // 用animation驱动RefreshView的绘制
