@@ -1,4 +1,4 @@
-package com.example.whz.refreshlayout;
+package com.example.whz.refreshlayout.header;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -9,7 +9,9 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-public class RefreshHeader extends FrameLayout implements RefreshHeaderInterface{
+import com.example.whz.refreshlayout.R;
+
+public class RefreshHeader extends FrameLayout implements RefreshHeaderFollowInterface {
 
     private Animation rotate_up;
     private Animation rotate_down;
@@ -49,7 +51,7 @@ public class RefreshHeader extends FrameLayout implements RefreshHeaderInterface
     }
 
     @Override
-    public void pull() {
+    public void pull(float persent) {
         textView.setText(getResources().getText(R.string.qq_header_pull));
         arrowIcon.clearAnimation();
         arrowIcon.startAnimation(rotate_down);
@@ -89,6 +91,8 @@ public class RefreshHeader extends FrameLayout implements RefreshHeaderInterface
         successIcon.setVisibility(VISIBLE);
         textView.setText(getResources().getText(R.string.qq_header_fail));
     }
-
-
+    @Override
+    public boolean needPercent(){
+        return false;
+    }
 }

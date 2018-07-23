@@ -4,7 +4,6 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.widget.ListViewCompat;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -12,14 +11,11 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.ScaleAnimation;
 import android.widget.ListView;
 import android.widget.Scroller;
-import android.widget.TabHost;
 
-import java.security.acl.LastOwnerException;
-import java.util.HashMap;
+import com.example.whz.refreshlayout.header.CoolRefreshHeader;
+import com.example.whz.refreshlayout.header.RefreshHeaderFollowInterface;
 
 
 public class RefreshLayout extends ViewGroup{
@@ -58,6 +54,8 @@ public class RefreshLayout extends ViewGroup{
 
     // 头部是否测量过
     private boolean mIsMeasureHeader;
+    
+    private boolean mWhetherHeaderNeedPercent;
 
 
     /* 这个变量是我看swiperefreshlayout源码有的一个变量，在onTouchEvent和onInterceptTouchEvent最先有个这样一个if
@@ -159,6 +157,7 @@ public class RefreshLayout extends ViewGroup{
         CoolRefreshHeader refreshHeader = new CoolRefreshHeader(context);
         setHeader(refreshHeader);
         mRefreshing = false;
+        mWhetherHeaderNeedPercent = true;
         mScroller= new Scroller(getContext());
         allPointersInformation = new SparseArray<>();
     }
@@ -453,7 +452,8 @@ public class RefreshLayout extends ViewGroup{
             case PULL:
                 if(overscrollTop < mTotalDragDistance) {
                     mPercent = overscrollTop / mTotalDragDistance;
-                    changeState(mState);
+                    if(mWhetherHeaderNeedPercent)
+                        changeState(mState);
                     scrollTo(0,-(int)overscrollTop);
                 }
                 else{
@@ -505,23 +505,18 @@ public class RefreshLayout extends ViewGroup{
     }
 
     private void changeState(State state) {
-        // 这个变量是因为，在moveSpinner方法的PULL处理里，因为CoolRefreshHeader型的头部不断需要RefreshLayout的percent，所以不断
-        // 的调用了额changeState，这就会造成moveSpinner方法中要判断头部header类型是那一种，这样处理的逻辑就耦合了header的类型，不好
-        // 所以加了这个函数，虽然moveSpinner方法的PULL处理不断调用changeState，但RefreshHeader型头部不会频繁改变状态
-        boolean nowIsPull = state != this.mState;
         this.mState = state;
-
-        RefreshHeaderInterface refreshHeader = this.mHeader instanceof RefreshHeaderInterface ? ((RefreshHeaderInterface) this.mHeader) : null;
-
-        if (refreshHeader != null) {
+        
+        
+        RefreshHeaderFollowInterface refreshHeader = this.mHeader instanceof RefreshHeaderFollowInterface ?((RefreshHeaderFollowInterface) this.mHeader):null;
+        if(refreshHeader != null){
+            mWhetherHeaderNeedPercent = refreshHeader.needPercent();
             switch (state) {
                 case RESET:
                     refreshHeader.reset();
                     break;
                 case PULL:
-                    if(nowIsPull){
-                        refreshHeader.pull();
-                    }
+                    refreshHeader.pull(mPercent);
                     break;
                 case PULLFULL:
                     refreshHeader.pullFull();
@@ -534,29 +529,6 @@ public class RefreshLayout extends ViewGroup{
                     break;
                 case FAIL:
                     refreshHeader.fail();
-                    break;
-            }
-        }
-
-        RefreshHeaderFollowInterface x = this.mHeader instanceof RefreshHeaderFollowInterface ?((RefreshHeaderFollowInterface) this.mHeader):null;
-        if(x != null){
-            switch (state) {
-                case RESET:
-                    break;
-                case PULL:
-                    x.pull(mPercent);
-                    break;
-                case PULLFULL:
-                    x.pullfull();
-                    break;
-                case LOADING:
-                    x.refreshing();
-                    break;
-                case COMPLETE:
-                    x.complete();
-                    break;
-                case FAIL:
-                    x.fail();
             }
         }
 

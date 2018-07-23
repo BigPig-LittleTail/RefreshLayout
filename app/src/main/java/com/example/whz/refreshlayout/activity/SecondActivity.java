@@ -1,7 +1,9 @@
-package com.example.whz.refreshlayout;
+package com.example.whz.refreshlayout.activity;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+
+import com.example.whz.refreshlayout.R;
 
 public class SecondActivity extends AppCompatActivity {
 

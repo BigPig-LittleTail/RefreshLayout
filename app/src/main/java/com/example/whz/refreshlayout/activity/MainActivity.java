@@ -1,4 +1,4 @@
-package com.example.whz.refreshlayout;
+package com.example.whz.refreshlayout.activity;
 
 import android.content.Intent;
 import android.os.Handler;
@@ -10,6 +10,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
+import com.example.whz.refreshlayout.R;
+import com.example.whz.refreshlayout.RefreshLayout;
 
 import java.util.ArrayList;
 import java.util.Locale;
