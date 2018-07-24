@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="60dp"
     android:background="#FFFFFF">
-    <com.example.whz.refreshlayout.progressview.RefreshView
+    <com.alibaba.whz.refresh_layout.header.RefreshView
         android:id="@+id/refreshView"
         android:layout_centerInParent="true"
         android:layout_width="match_parent"

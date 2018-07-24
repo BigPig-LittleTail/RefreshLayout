@@ -1,4 +1,4 @@
-package com.example.whz.refreshlayout;
+package com.alibaba.whz.refresh_layout;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -14,8 +14,7 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.Scroller;
 
-import com.example.whz.refreshlayout.header.CoolRefreshHeader;
-import com.example.whz.refreshlayout.header.RefreshHeaderFollowInterface;
+import com.alibaba.whz.refresh_layout.header.CoolRefreshHeader;
 
 
 public class RefreshLayout extends ViewGroup{
@@ -54,7 +53,7 @@ public class RefreshLayout extends ViewGroup{
 
     // 头部是否测量过
     private boolean mIsMeasureHeader;
-    
+
     private boolean mWhetherHeaderNeedPercent;
 
 
@@ -137,7 +136,7 @@ public class RefreshLayout extends ViewGroup{
     public void setHeader(View view){
         if(view != null && view != mHeader){
             removeView(mHeader);
-            ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
+            LayoutParams layoutParams = view.getLayoutParams();
             if(layoutParams == null) {
                 layoutParams = new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT);
                 view.setLayoutParams(layoutParams);
@@ -506,8 +505,8 @@ public class RefreshLayout extends ViewGroup{
 
     private void changeState(State state) {
         this.mState = state;
-        
-        
+
+
         RefreshHeaderFollowInterface refreshHeader = this.mHeader instanceof RefreshHeaderFollowInterface ?((RefreshHeaderFollowInterface) this.mHeader):null;
         if(refreshHeader != null){
             mWhetherHeaderNeedPercent = refreshHeader.needPercent();

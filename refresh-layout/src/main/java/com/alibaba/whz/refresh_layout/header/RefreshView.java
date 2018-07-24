@@ -1,17 +1,16 @@
-package com.example.whz.refreshlayout.progressview;
+package com.alibaba.whz.refresh_layout.header;
 
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.View;
 
-import com.example.whz.refreshlayout.State;
+import com.alibaba.whz.refresh_layout.State;
 
-public class RefreshView extends View {
+class RefreshView extends View {
 
     private Paint mPaint;
 
@@ -138,7 +137,8 @@ public class RefreshView extends View {
                 * mNumType = 0的时候是转的第一圈，也就是蓝色圈有270度的时候，转完将nNumType设置为1,
                 * mNumType = 1的时候转的圈分3部分，第一部分，蓝色圈出180度，第二部分，整个180度圆圈头移动到圈头，第三部分，180度圈尾部追回
                 * */
-                if(mNumType == 0) {
+                if(mNumType == 0)
+                {
                     setColorAndBig(Color.BLUE,3.0f);
                     oval.set(x, y,
                             getWidth() - x, getHeight() - y);
@@ -198,4 +198,5 @@ public class RefreshView extends View {
             }
         }
     }
+
 }

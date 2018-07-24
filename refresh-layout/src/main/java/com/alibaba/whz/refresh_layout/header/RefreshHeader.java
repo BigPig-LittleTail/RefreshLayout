@@ -1,4 +1,4 @@
-package com.example.whz.refreshlayout.header;
+package com.alibaba.whz.refresh_layout.header;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -9,7 +9,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.example.whz.refreshlayout.R;
+import com.alibaba.whz.refresh_layout.R;
+import com.alibaba.whz.refresh_layout.RefreshHeaderFollowInterface;
 
 public class RefreshHeader extends FrameLayout implements RefreshHeaderFollowInterface {
 

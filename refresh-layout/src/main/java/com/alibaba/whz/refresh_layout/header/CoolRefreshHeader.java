@@ -1,4 +1,4 @@
-package com.example.whz.refreshlayout.header;
+package com.alibaba.whz.refresh_layout.header;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -6,9 +6,10 @@ import android.view.animation.Animation;
 import android.view.animation.Transformation;
 import android.widget.FrameLayout;
 
-import com.example.whz.refreshlayout.R;
-import com.example.whz.refreshlayout.State;
-import com.example.whz.refreshlayout.progressview.RefreshView;
+import com.alibaba.whz.refresh_layout.R;
+import com.alibaba.whz.refresh_layout.RefreshHeaderFollowInterface;
+import com.alibaba.whz.refresh_layout.State;
+
 
 public class CoolRefreshHeader extends FrameLayout implements RefreshHeaderFollowInterface {
     private RefreshView mRefreshView;

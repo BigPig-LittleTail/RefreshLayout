@@ -2,6 +2,7 @@ package com.example.whz.refreshlayout.activity;
 
 import android.content.Intent;
 import android.os.Handler;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -11,8 +12,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.alibaba.whz.refresh_layout.RefreshLayout;
+import com.alibaba.whz.refresh_layout.header.RefreshHeader;
 import com.example.whz.refreshlayout.R;
-import com.example.whz.refreshlayout.RefreshLayout;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -20,6 +22,7 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
 
     private RefreshLayout refreshLayout;
+
     private RecyclerView recyclerView;
 
     Handler mHandler = new Handler();

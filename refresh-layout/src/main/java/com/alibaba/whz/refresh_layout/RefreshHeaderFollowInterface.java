@@ -1,4 +1,4 @@
-package com.example.whz.refreshlayout.header;
+package com.alibaba.whz.refresh_layout;
 
 public interface RefreshHeaderFollowInterface {
     void reset();
