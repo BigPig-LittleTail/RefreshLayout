@@ -3,6 +3,8 @@ package com.alibaba.whz.refresh_layout;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.view.NestedScrollingParent;
+import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.ListViewCompat;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -13,8 +15,13 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.Scroller;
+import android.widget.Toast;
 
 import com.alibaba.whz.refresh_layout.header.CoolRefreshHeader;
+
+import java.security.acl.LastOwnerException;
+
+import javax.security.auth.login.LoginException;
 
 
 public class RefreshLayout extends ViewGroup{
@@ -82,6 +89,9 @@ public class RefreshLayout extends ViewGroup{
             this.mHasMoved = mHasMoved;
         }
     }
+
+
+
 
 
     public void setOnRefreshListener(RefreshLayout.OnRefreshListener listener){
@@ -206,10 +216,40 @@ public class RefreshLayout extends ViewGroup{
     }
 
 
+    private boolean mIsIntercept = false;
+    private boolean mChlidScroll = false;
+
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev){
+        Log.e(TAG,"dispatchTouchEvent+canChildScrollUp()+mChildScroll"+canChildScrollUp()+mChlidScroll);
+
+        if(canChildScrollUp() || mChlidScroll){
+            if(mChlidScroll){
+                ev.setAction(MotionEvent.ACTION_DOWN);
+            }
+            onInterceptTouchEvent(ev);
+            return super.dispatchTouchEvent(ev);
+        }
+        else{
+            Log.e(TAG,"mIsBeingDragged && mIsIntercept"+mIsBeingDragged+mIsIntercept);
+            if(mIsBeingDragged && mIsIntercept){
+                return onTouchEvent(ev);
+            }
+            else {
+                if(!mIsIntercept){
+                    mIsIntercept = onInterceptTouchEvent(ev);
+                }
+                return  super.dispatchTouchEvent(ev);
+            }
+        }
+    }
+
 
     @Override
     public boolean onInterceptTouchEvent (MotionEvent ev){
         Log.e(TAG,"onInterceptTouchEvent");
+
         int action = ev.getActionMasked();
 
 //        if (this.mReturningToStart && action == 0) {
@@ -217,9 +257,11 @@ public class RefreshLayout extends ViewGroup{
 //        }
 
         // 如果isEnabled为false，或者子view能滚动，或者正在刷新，不拦截touch事件
-        if (!this.isEnabled() /*|| this.mReturningToStart*/ || this.canChildScrollUp() || this.mRefreshing) {
+        Log.e(TAG,"canChildScrollUp"+this.canChildScrollUp());
+        if (!this.isEnabled() /*|| this.mReturningToStart*/  || this.mRefreshing) {
             return false;
         }
+
 
         // 这个条件判断是因为我的refreshlayout不同于swiperefreshlayout，有一个complete状态
         // 并且complete到reset是在一个子线程异步执行的，所以要保证complete到reset之前，refreshlayout不处理事件
@@ -233,6 +275,8 @@ public class RefreshLayout extends ViewGroup{
                 Log.e(TAG,"I_ACTION_DOWN");
                 mActivePointId = ev.getPointerId(0);
                 mIsBeingDragged = false;
+                mIsIntercept = false;
+                mChlidScroll = false;
                 mTotalOffset = 0;
 
                 pointerIndex = ev.findPointerIndex(mActivePointId);
@@ -242,11 +286,15 @@ public class RefreshLayout extends ViewGroup{
                     return false;
 
                 mInitDownY = ev.getY(pointerIndex);
-
-                allPointersInformation.put(mActivePointId,new PointerInformation(0,mInitDownY,false));
+                Log.e(TAG,"mInitDown"+mInitDownY);
+                if(allPointersInformation.get(mActivePointId) == null)
+                    allPointersInformation.put(mActivePointId,new PointerInformation(0,mInitDownY,false));
+                if (canChildScrollUp())
+                    return false;
 
                 break;
             case MotionEvent.ACTION_MOVE:
+
                 Log.e(TAG,"I_ACTION_MOVE");
                 if(mActivePointId == INVALID_POINTER)
                     return false;
@@ -254,15 +302,15 @@ public class RefreshLayout extends ViewGroup{
 
                 if(pointerIndex < 0)
                     return false;
+
                 float y = ev.getY(pointerIndex);
-
-                Log.e(TAG,"mActivePointId"+mActivePointId);
-                startDragging(y);
-                // 新建当前活动手指的信息，存在allPointersInformation中
-
-                if (mIsBeingDragged){
-                    onTouchEvent(ev);
+                if (canChildScrollUp()){
+                    mInitDownY = y;
+                    return false;
                 }
+
+                startDragging(y);
+
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
                 Log.e(TAG,"ACTION_POINTER_DOWN");
@@ -286,10 +334,13 @@ public class RefreshLayout extends ViewGroup{
                 mIsBeingDragged = false;
                 mActivePointId = INVALID_POINTER;
                 allPointersInformation.clear();
+                mIsIntercept = false;
                 break;
 
         }
-        return this.mIsBeingDragged;
+        Log.e(TAG,"onInterceptTouchEvent"+(!mChlidScroll && this.mIsBeingDragged));
+        Log.e(TAG,"mState"+mState);
+        return !mChlidScroll && this.mIsBeingDragged;
     }
 
     private void startDragging(float y){
@@ -298,7 +349,9 @@ public class RefreshLayout extends ViewGroup{
         //Log.e(TAG,"yDiff"+yDiff);
         if(yDiff > mTouchSlop && !mIsBeingDragged && mState == State.RESET){
             mInitMotionY = mInitDownY + mTouchSlop;
+
             allPointersInformation.get(mActivePointId).mInitMotionY = mInitMotionY;
+            Log.e(TAG,"mInitMotionY"+allPointersInformation.get(mActivePointId).mInitMotionY);
 
             mIsBeingDragged = true;
             changeState(State.PULL);
@@ -372,12 +425,17 @@ public class RefreshLayout extends ViewGroup{
                     // 加上偏移量
                     final float overscrollTop = (y - mInitMotionY) + mTotalOffset;
                     activePointerInfo.mPointerOffset = (y- mInitMotionY);
+                    Log.e(TAG,"Y"+y);
+                    Log.e(TAG,"mInitMotionY"+mInitMotionY);
+                    Log.e(TAG,"mTotalOffset"+mTotalOffset);
+                    Log.e(TAG,"overscrollTop"+overscrollTop);
+                    moveSpinner(overscrollTop);
+
                     if (overscrollTop > 0) {
-                        moveSpinner(overscrollTop);
+
                     } else {
-                        // 这个避免向上快速滑动，留黑边
-                        scrollTo(0,0);
-                        changeState(State.RESET);
+                        Log.e(TAG,"11111");
+                        mChlidScroll = true;
                         return false;
                     }
                 }
@@ -417,19 +475,18 @@ public class RefreshLayout extends ViewGroup{
                 allPointersInformation.clear();
                 if (mIsBeingDragged) {
                     mIsBeingDragged = false;
-                    final float overscrollTop = (y - mInitMotionY) + mTotalOffset;
-                    if(overscrollTop > 0)
-                        finishSpinner();
+                    finishSpinner();
                 }
                 mActivePointId = INVALID_POINTER;
                 mTotalOffset = 0;
+                mIsIntercept = false;
                 return false;
             }
             case MotionEvent.ACTION_CANCEL:
                 return false;
 
         }
-        return true;
+        return false;
     }
 
     /*
@@ -445,29 +502,37 @@ public class RefreshLayout extends ViewGroup{
         //Log.e(TAG,Float.toString(overscrollTop));
 
         switch (mState) {
-            case RESET:
-                changeState(State.PULL);
-                break;
             case PULL:
-                if(overscrollTop < mTotalDragDistance) {
-                    mPercent = overscrollTop / mTotalDragDistance;
-                    if(mWhetherHeaderNeedPercent)
-                        changeState(mState);
-                    scrollTo(0,-(int)overscrollTop);
+                if(overscrollTop > 0){
+                    if(overscrollTop < mTotalDragDistance) {
+                        mPercent = overscrollTop / mTotalDragDistance;
+                        if(mWhetherHeaderNeedPercent)
+                            changeState(mState);
+                        scrollTo(0,-(int)overscrollTop);
+                    }
+                    else{
+                        // 为了防止快速滑动，状态改变滞后造成的留黑边
+                        scrollTo(0,-(int)mTotalDragDistance);
+                        changeState(State.PULLFULL);
+                    }
                 }
                 else{
-                    // 为了防止快速滑动，状态改变滞后造成的留黑边
-                    scrollTo(0,-(int)mTotalDragDistance);
-                    changeState(State.PULLFULL);
+                   scrollTo(0,0);
+                   changeState(State.RESET);
                 }
                 break;
             case PULLFULL:
-                if(overscrollTop < mTotalDragDistance) {
-                    scrollTo(0,-(int)overscrollTop);
-                    changeState(State.PULL);
+                if(overscrollTop > 0) {
+                    if (overscrollTop < mTotalDragDistance) {
+                        scrollTo(0, -(int) overscrollTop);
+                        changeState(State.PULL);
+                    } else {
+                        scrollTo(0, -(int) mTotalDragDistance);
+                    }
                 }
                 else{
-                    scrollTo(0,-(int)mTotalDragDistance);
+                    scrollTo(0,0);
+                    changeState(State.RESET);
                 }
                 break;
         }
@@ -490,15 +555,19 @@ public class RefreshLayout extends ViewGroup{
 
     private void finishSpinner(){
         switch (mState){
+            case RESET:
+                scrollTo(0,0);
+                break;
             case PULL:
                 mScroller.startScroll(0,getScrollY(),0,-getScrollY());
                 invalidate();
                 changeState(State.RESET);
                 break;
             case PULLFULL:
-                changeState(State.LOADING);
                 mRefreshing = true;
-                mOnRefreshListener.onRefresh();
+                changeState(State.LOADING);
+                if(mOnRefreshListener != null)
+                    mOnRefreshListener.onRefresh();
                 break;
         }
     }

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".activity.TryActivity">
+    <com.example.whz.refreshlayout.activity.TryViewGroup
+        android:id="@+id/testTryViewGroup"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <!--<android.support.v7.widget.RecyclerView-->
+        <!--android:id="@+id/testRecyclerView"-->
+        <!--android:layout_height="match_parent"-->
+        <!--android:layout_width="match_parent"-->
+        <!--/>-->
+        <ListView
+            android:id="@+id/testListView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        </ListView>
+
+    </com.example.whz.refreshlayout.activity.TryViewGroup>
+
+
+
+
+</android.support.constraint.ConstraintLayout>
