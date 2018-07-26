@@ -43,8 +43,9 @@ public class RefreshLayout extends ViewGroup{
     private float mInitMotionY;
     // 已经偏移的偏移量
     private float mTotalOffset;
-    // 每个手指的滑动信息
-    private SparseArray<PointerInformation> allPointersInformation;
+    //  活跃手指的偏移量
+    private float mOffset;
+
 
     // 刷新监控
     private RefreshLayout.OnRefreshListener mOnRefreshListener;
@@ -72,16 +73,6 @@ public class RefreshLayout extends ViewGroup{
     // 状态
     private State mState = State.RESET;
 
-    private class PointerInformation{
-        float mPointerOffset;
-        float mInitMotionY;
-        boolean mHasMoved;
-        private PointerInformation(float mPointerOffset,float mInitMotionY,boolean mHasMoved){
-            this.mPointerOffset = mPointerOffset;
-            this.mInitMotionY = mInitMotionY;
-            this.mHasMoved = mHasMoved;
-        }
-    }
 
 
     public void setOnRefreshListener(RefreshLayout.OnRefreshListener listener){
@@ -158,7 +149,6 @@ public class RefreshLayout extends ViewGroup{
         mRefreshing = false;
         mWhetherHeaderNeedPercent = true;
         mScroller= new Scroller(getContext());
-        allPointersInformation = new SparseArray<>();
     }
 
 
@@ -243,7 +233,6 @@ public class RefreshLayout extends ViewGroup{
 
                 mInitDownY = ev.getY(pointerIndex);
 
-                allPointersInformation.put(mActivePointId,new PointerInformation(0,mInitDownY,false));
 
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -258,7 +247,6 @@ public class RefreshLayout extends ViewGroup{
 
                 Log.e(TAG,"mActivePointId"+mActivePointId);
                 startDragging(y);
-                // 新建当前活动手指的信息，存在allPointersInformation中
 
                 if (mIsBeingDragged){
                     onTouchEvent(ev);
@@ -273,7 +261,6 @@ public class RefreshLayout extends ViewGroup{
                 mActivePointId = ev.getPointerId(pointerIndex);
                 mInitDownY = ev.getY(pointerIndex);
 
-                allPointersInformation.put(mActivePointId,new PointerInformation(0,mInitDownY,false));
                 Log.e(TAG,"pointer_Y"+ev.getY(pointerIndex));
                 break;
             case MotionEvent.ACTION_POINTER_UP:
@@ -285,7 +272,6 @@ public class RefreshLayout extends ViewGroup{
             case MotionEvent.ACTION_CANCEL:
                 mIsBeingDragged = false;
                 mActivePointId = INVALID_POINTER;
-                allPointersInformation.clear();
                 break;
 
         }
@@ -298,7 +284,6 @@ public class RefreshLayout extends ViewGroup{
         //Log.e(TAG,"yDiff"+yDiff);
         if(yDiff > mTouchSlop && !mIsBeingDragged && mState == State.RESET){
             mInitMotionY = mInitDownY + mTouchSlop;
-            allPointersInformation.get(mActivePointId).mInitMotionY = mInitMotionY;
 
             mIsBeingDragged = true;
             changeState(State.PULL);
@@ -309,7 +294,7 @@ public class RefreshLayout extends ViewGroup{
     private  void onSecondaryPointerUp(MotionEvent ev){
         final int pointerIndex = ev.getActionIndex();
         final int pointerId = ev.getPointerId(pointerIndex);
-        PointerInformation upPointerInfo = allPointersInformation.get(pointerId);
+
         if(pointerId == mActivePointId) {
 
             final int newPointerIndex = pointerIndex == 0 ?1:0;
@@ -317,18 +302,13 @@ public class RefreshLayout extends ViewGroup{
 
             Log.e(TAG,"mActivePointId" + mActivePointId);
 
-            PointerInformation nowActivePointerInfo = allPointersInformation.get(mActivePointId);
 
-            // 总偏移减去当前活跃手指曾经作出的偏移
-            mTotalOffset = mTotalOffset - nowActivePointerInfo.mPointerOffset;
-            // 总偏移加上抬起手指作出的偏移
-            mTotalOffset = upPointerInfo.mHasMoved ? mTotalOffset+upPointerInfo.mPointerOffset:mTotalOffset;
-            // 还原当前活跃手指的InitMotionY
-            mInitMotionY = nowActivePointerInfo.mInitMotionY;
+
+            mTotalOffset += mOffset;
+            mInitMotionY = ev.getY(newPointerIndex);
+
             Log.e(TAG,"mInitMotionY"+mInitMotionY);
         }
-        // 移除抬起手指的信息
-        allPointersInformation.delete(pointerId);
     }
 
 
@@ -359,19 +339,15 @@ public class RefreshLayout extends ViewGroup{
                 if (pointerIndex < 0)
                     return false;
                 final float y = ev.getY(pointerIndex);
-                // 获取当前活跃手指的信息
-                PointerInformation activePointerInfo = allPointersInformation.get(mActivePointId);
 
-                // 表示该手指曾经作出过偏移，手指信息中的偏移量是有用值，这个为了避免有的手指，点了一下而没有移动
-                // 造成的偏移量计算错误
-                activePointerInfo.mHasMoved = true;
 
 
                 //startDragging(y);
                 if (mIsBeingDragged) {
                     // 加上偏移量
                     final float overscrollTop = (y - mInitMotionY) + mTotalOffset;
-                    activePointerInfo.mPointerOffset = (y- mInitMotionY);
+
+                    mOffset = (y- mInitMotionY);
                     if (overscrollTop > 0) {
                         moveSpinner(overscrollTop);
                     } else {
@@ -386,21 +362,19 @@ public class RefreshLayout extends ViewGroup{
             case MotionEvent.ACTION_POINTER_DOWN: {
                 // 获取当前活跃手指的信息
                 Log.e(TAG,"ACTION_POINTER_DOWN");
-                PointerInformation nowActivePointerInfo = allPointersInformation.get(mActivePointId);
                 pointerIndex = ev.getActionIndex();
                 if (pointerIndex < 0) {
                     return false;
                 }
                 mActivePointId = ev.getPointerId(pointerIndex);
 
-                // 总偏移量加上当前活跃手指的偏移量
-                mTotalOffset += nowActivePointerInfo.mPointerOffset;
+
+                mTotalOffset += mOffset;
+                mOffset = 0;
                 // 获取新手指的点击位置
                 pointerIndex = ev.findPointerIndex(mActivePointId);
                 mInitDownY = mInitMotionY = ev.getY(pointerIndex);
 
-                // 新建手指信息保存到allPointerInformation
-                allPointersInformation.put(mActivePointId,new PointerInformation(0,mInitMotionY,false));
                 break;
             }
             case MotionEvent.ACTION_POINTER_UP:
@@ -414,7 +388,6 @@ public class RefreshLayout extends ViewGroup{
                 if (pointerIndex < 0)
                     return false;
                 final float y = ev.getY(pointerIndex);
-                allPointersInformation.clear();
                 if (mIsBeingDragged) {
                     mIsBeingDragged = false;
                     final float overscrollTop = (y - mInitMotionY) + mTotalOffset;
