@@ -302,10 +302,9 @@ public class RefreshLayout extends ViewGroup{
 
             Log.e(TAG,"mActivePointId" + mActivePointId);
 
-
-
             mTotalOffset += mOffset;
-            mInitMotionY = ev.getY(newPointerIndex);
+
+            mInitDownY = mInitMotionY = ev.getY(newPointerIndex);
 
             Log.e(TAG,"mInitMotionY"+mInitMotionY);
         }
@@ -342,7 +341,7 @@ public class RefreshLayout extends ViewGroup{
 
 
 
-                //startDragging(y);
+                startDragging(y);
                 if (mIsBeingDragged) {
                     // 加上偏移量
                     final float overscrollTop = (y - mInitMotionY) + mTotalOffset;
