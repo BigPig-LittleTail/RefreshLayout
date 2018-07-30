@@ -424,8 +424,6 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
 
             Log.e(TAG,"mActivePointId" + mActivePointId);
 
-
-
             mTotalOffset += mOffset;
             mInitDownY = mInitMotionY = ev.getY(newPointerIndex);
 
@@ -579,10 +577,15 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
     public void computeScroll() {
         super.computeScroll();
         if (mScroller.computeScrollOffset()) {
-
             scrollTo(mScroller.getCurrX(),mScroller.getCurrY());
+            mPercent = (-mScroller.getCurrY()) / mTotalDragDistance;
+            Log.e(TAG,"mPercent"+mPercent);
             if (mScroller.getCurrX() == getScrollX()
                     && mScroller.getCurrY() == getScrollY() ) {
+                if(mWhetherHeaderNeedPercent){
+                    changeState(mState);
+                    Log.e(TAG,"mState"+mState);
+                    }
                 invalidate();
             }
         }
