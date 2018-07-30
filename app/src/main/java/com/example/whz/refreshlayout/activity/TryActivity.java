@@ -23,10 +23,10 @@ import java.util.Locale;
 
 public class TryActivity extends AppCompatActivity {
 
-    private TestRefreshLayout refreshLayout;
+    private RefreshLayout refreshLayout;
     private RefreshLayout myRefreshLayout;
     private RecyclerView recyclerView;
-    private ListView listView;
+    private TestListView listView;
     private TryViewGroup tryViewGroup;
 
     Handler mHandler = new Handler();
@@ -36,59 +36,59 @@ public class TryActivity extends AppCompatActivity {
 
 
 //  自己的RefreshLayout，变量名可能要改一下
-//    @Override
-//    protected void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_try);
-//        refreshLayout = findViewById(R.id.testRefreshLayout);
-//        recyclerView = findViewById(R.id.testRecyclerView);
-//
-//        refreshLayout.setOnRefreshListener(new TestRefreshLayout.OnRefreshListener() {
-//            @Override
-//            public void onRefresh() {
-//
-//                mHandler.postDelayed(new Runnable() {
-//                    @Override
-//                    public void run() {
-//
-//
-//                        if((k & 0x1) == 0) {
-//                            test = new ArrayList<>();
-//                            for(int i = 100;i>90;i--){
-//                                test.add(i);
-//                            }
-//                        }
-//                        else {
-//                            test = new ArrayList<>();
-//                            for(int i = 0;i<10;i++){
-//                                test.add(i);
-//                            }
-//                        }
-//                        k++;
-//                        testAdapter m = new testAdapter(test);
-//                        recyclerView.setAdapter(m);
-//
-//                        refreshLayout.setRefreshing(false);
-//                    }
-//                },6000);
-//
-//
-//            }
-//        });
-//
-//
-//        ArrayList<Integer> test = new ArrayList<>();
-//        for(int i = 0;i<10;i++){
-//            test.add(i);
-//        }
-//
-//        testAdapter m = new testAdapter(test);
-//        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-//        recyclerView.setLayoutManager(layoutManager);
-//        recyclerView.setAdapter(m);
-//    }
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_try);
+        refreshLayout = findViewById(R.id.testRefreshLayout);
+        recyclerView = findViewById(R.id.testRecyclerView);
 
-//    复制的SwipeRefreshLayout
+        refreshLayout.setOnRefreshListener(new RefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+
+                mHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+
+
+                        if((k & 0x1) == 0) {
+                            test = new ArrayList<>();
+                            for(int i = 100;i>90;i--){
+                                test.add(i);
+                            }
+                        }
+                        else {
+                            test = new ArrayList<>();
+                            for(int i = 0;i<10;i++){
+                                test.add(i);
+                            }
+                        }
+                        k++;
+                        testAdapter m = new testAdapter(test);
+                        recyclerView.setAdapter(m);
+
+                        refreshLayout.setRefreshing(false,true);
+                    }
+                },6000);
+
+
+            }
+        });
+
+
+        ArrayList<Integer> test = new ArrayList<>();
+        for(int i = 0;i<10;i++){
+            test.add(i);
+        }
+
+        testAdapter m = new testAdapter(test);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setAdapter(m);
+    }
+
+    //复制的SwipeRefreshLayout
 //    @Override
 //    protected void onCreate(Bundle savedInstanceState) {
 //        super.onCreate(savedInstanceState);
@@ -108,24 +108,24 @@ public class TryActivity extends AppCompatActivity {
 //    }
 
 
-    //自己的RefreshLayout用来测试ListView
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_try3);
-        myRefreshLayout = findViewById(R.id.testRefreshLayout);
-        listView = findViewById(R.id.testListView);
-
-        test = new ArrayList<>();
-        for(int i = 0;i<20;i++){
-            test.add(i);
-        }
-
-        ArrayAdapter<Integer> adapter = new ArrayAdapter<Integer>(
-                this, android.R.layout.simple_list_item_1, test);
-
-        listView.setAdapter(adapter);
-    }
+//    //自己的RefreshLayout用来测试ListView
+//    @Override
+//    protected void onCreate(Bundle savedInstanceState) {
+//        super.onCreate(savedInstanceState);
+//        setContentView(R.layout.activity_try3);
+//        myRefreshLayout = findViewById(R.id.testRefreshLayout);
+//        listView = findViewById(R.id.testListView);
+//
+//        test = new ArrayList<>();
+//        for(int i = 0;i<20;i++){
+//            test.add(i);
+//        }
+//
+//        ArrayAdapter<Integer> adapter = new ArrayAdapter<Integer>(
+//                this, android.R.layout.simple_list_item_1, test);
+//
+//        listView.setAdapter(adapter);
+//    }
 
 //        @Override
 //        protected void onCreate(Bundle savedInstanceState) {

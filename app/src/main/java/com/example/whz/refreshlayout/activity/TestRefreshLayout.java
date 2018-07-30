@@ -675,6 +675,7 @@ public class TestRefreshLayout extends ViewGroup implements NestedScrollingParen
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
+        Log.e(TAG,"onInterceptTouchEvent");
         ensureTarget();
 
         final int action = ev.getActionMasked();
@@ -684,7 +685,7 @@ public class TestRefreshLayout extends ViewGroup implements NestedScrollingParen
             mReturningToStart = false;
         }
 
-        Log.e(TAG,"canChildScrollUp"+canChildScrollUp());
+
 
 
         if (!isEnabled() || mReturningToStart || canChildScrollUp()
@@ -751,12 +752,14 @@ public class TestRefreshLayout extends ViewGroup implements NestedScrollingParen
 
     @Override
     public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
+        Log.e(TAG,"onStartNestedScroll");
         return isEnabled() && !mReturningToStart && !mRefreshing
                 && (nestedScrollAxes & ViewCompat.SCROLL_AXIS_VERTICAL) != 0;
     }
 
     @Override
     public void onNestedScrollAccepted(View child, View target, int axes) {
+        Log.e(TAG,"onNestedScrollAccepted");
         // Reset the counter of how much leftover scroll needs to be consumed.
         mNestedScrollingParentHelper.onNestedScrollAccepted(child, target, axes);
         // Dispatch up to the nested parent
@@ -767,6 +770,7 @@ public class TestRefreshLayout extends ViewGroup implements NestedScrollingParen
 
     @Override
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
+        Log.e(TAG,"onNestedPreScroll");
         // If we are in the middle of consuming, a scroll, then we want to move the spinner back up
         // before allowing the list to scroll
         if (dy > 0 && mTotalUnconsumed > 0) {
@@ -984,6 +988,12 @@ public class TestRefreshLayout extends ViewGroup implements NestedScrollingParen
     }
 
     @Override
+    public boolean dispatchTouchEvent(MotionEvent event){
+        Log.e(TAG,"dispatchTouchEvent");
+        return super.dispatchTouchEvent(event);
+    }
+
+    @Override
     public boolean onTouchEvent(MotionEvent ev) {
         Log.e(TAG,"onTouchEvent");
         final int action = ev.getActionMasked();
@@ -1153,7 +1163,7 @@ public class TestRefreshLayout extends ViewGroup implements NestedScrollingParen
     }
 
     void setTargetOffsetTopAndBottom(int offset) {
-        //mCircleView.bringToFront();
+        mCircleView.bringToFront();
         ViewCompat.offsetTopAndBottom(mCircleView, offset);
         mCurrentTargetOffsetTop = mCircleView.getTop();
     }

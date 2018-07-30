@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.view.NestedScrollingParent;
+import android.support.v4.view.NestedScrollingParentHelper;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.ListViewCompat;
 import android.util.AttributeSet;
@@ -19,12 +20,9 @@ import android.widget.Toast;
 
 import com.alibaba.whz.refresh_layout.header.CoolRefreshHeader;
 
-import java.security.acl.LastOwnerException;
-
-import javax.security.auth.login.LoginException;
 
 
-public class RefreshLayout extends ViewGroup{
+public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
 
     public static final String TAG = "RefreshLayout";
     private static final int INVALID_POINTER = -1;
@@ -79,10 +77,8 @@ public class RefreshLayout extends ViewGroup{
     private boolean mIsBeingDragged;
     // 状态
     private State mState = State.RESET;
-
-
-
-
+    private boolean mNestedScrollInProgress;
+    private int mTotalUnconsumed;
 
 
     public void setOnRefreshListener(RefreshLayout.OnRefreshListener listener){
@@ -159,6 +155,7 @@ public class RefreshLayout extends ViewGroup{
         mRefreshing = false;
         mWhetherHeaderNeedPercent = true;
         mScroller= new Scroller(getContext());
+        mParentHelper = new NestedScrollingParentHelper(this);
     }
 
 
@@ -209,31 +206,96 @@ public class RefreshLayout extends ViewGroup{
     private boolean mIsIntercept = false;
     private boolean mChlidScroll = false;
 
+    private float mOverTop;
+
+    private NestedScrollingParentHelper mParentHelper;
+
+
+    @Override
+    public boolean onStartNestedScroll(View child,View target,int nestedScrollAxes){
+        Log.e(TAG,"onStartNestedScroll");
+        return true;
+    }
+
+    @Override
+    public void onNestedPreScroll(View target, int dx, int dy, int[] consumed){
+        Log.e(TAG,"onNestedPreScroll");
+        Log.e(TAG,"getScrollY"+getScrollY());
+        if((getScrollY() == 0 && dy > 0) || canChildScrollUp()){
+            Log.e(TAG,"dy"+dy);
+            mTotalUnconsumed = 0;
+            consumed[1] = 0;
+        }
+        else{
+            if(mState == State.RESET){
+                mState = State.PULL;
+            }
+            mTotalUnconsumed -= dy;
+            consumed[1] = dy;
+            moveSpinner(mTotalUnconsumed);
+        }
+    }
+
+    @Override
+    public void onNestedScrollAccepted(View child, View target, int nestedScrollAxes){
+        Log.e(TAG,"onNestedScrollAccepted");
+        mParentHelper.onNestedScrollAccepted(child,target,nestedScrollAxes);
+        startNestedScroll(nestedScrollAxes & ViewCompat.SCROLL_AXIS_VERTICAL);
+        mTotalUnconsumed = 0;
+        mNestedScrollInProgress = true;
+    }
+
+    @Override
+    public void onStopNestedScroll(View target){
+        mParentHelper.onStopNestedScroll(target);
+        finishSpinner();
+        stopNestedScroll();
+    }
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev){
-        Log.e(TAG,"dispatchTouchEvent+canChildScrollUp()+mChildScroll"+canChildScrollUp()+mChlidScroll);
-
-        if(canChildScrollUp() || mChlidScroll){
-            if(mChlidScroll){
-                ev.setAction(MotionEvent.ACTION_DOWN);
-            }
-            onInterceptTouchEvent(ev);
-            return super.dispatchTouchEvent(ev);
-        }
-        else{
-            Log.e(TAG,"mIsBeingDragged && mIsIntercept"+mIsBeingDragged+mIsIntercept);
-            if(mIsBeingDragged && mIsIntercept){
-                return onTouchEvent(ev);
-            }
-            else {
-                if(!mIsIntercept){
-                    mIsIntercept = onInterceptTouchEvent(ev);
-                }
-                return  super.dispatchTouchEvent(ev);
-            }
-        }
+        Log.e(TAG,"dispatchTouchEvent");
+        return super.dispatchTouchEvent(ev);
     }
+
+
+//    @Override
+//    public boolean dispatchTouchEvent(MotionEvent ev){
+//        Log.e(TAG,"dispatchTouchEvent+canChildScrollUp()+mChildScroll"+canChildScrollUp()+mChlidScroll);
+//
+//        if(canChildScrollUp() || mChlidScroll){
+//            if(mChlidScroll){
+//                Log.e(TAG,"action"+ev.getActionMasked());
+//                if(ev.getActionMasked() == MotionEvent.ACTION_MOVE && mOverTop > mTouchSlop){
+//                    //ev.setAction(MotionEvent.ACTION_DOWN);
+//                    if(mOverTop > mTouchSlop){
+//                        ev.setAction(MotionEvent.ACTION_DOWN);
+//                        ev.setLocation(0,0);
+//                        mOverTop = 0;
+//                    }
+//                    else{
+//                        ev.setAction(MotionEvent.ACTION_MOVE);
+//                    }
+//                }
+//                //onTouchEvent(ev);
+//            }else{
+//                onInterceptTouchEvent(ev);
+//            }
+//            return super.dispatchTouchEvent(ev);
+//        }
+//        else{
+//            Log.e(TAG,"mIsBeingDragged && mIsIntercept"+mIsBeingDragged+mIsIntercept);
+//            if(mIsBeingDragged && mIsIntercept){
+//                return onTouchEvent(ev);
+//            }
+//            else {
+//                if(!mIsIntercept){
+//                    mIsIntercept = onInterceptTouchEvent(ev);
+//                }
+//                return  super.dispatchTouchEvent(ev);
+//            }
+//        }
+//    }
 
 
     @Override
@@ -247,8 +309,8 @@ public class RefreshLayout extends ViewGroup{
 //        }
 
         // 如果isEnabled为false，或者子view能滚动，或者正在刷新，不拦截touch事件
-        Log.e(TAG,"canChildScrollUp"+this.canChildScrollUp());
-        if (!this.isEnabled() /*|| this.mReturningToStart*/  || this.mRefreshing) {
+        if (!this.isEnabled() /*|| this.mReturningToStart*/  || this.mRefreshing || mNestedScrollInProgress
+                || canChildScrollUp()) {
             return false;
         }
 
@@ -263,10 +325,10 @@ public class RefreshLayout extends ViewGroup{
         switch (action){
             case MotionEvent.ACTION_DOWN:
                 Log.e(TAG,"I_ACTION_DOWN");
+
                 mActivePointId = ev.getPointerId(0);
                 mIsBeingDragged = false;
                 mIsIntercept = false;
-                mChlidScroll = false;
                 mTotalOffset = 0;
 
                 pointerIndex = ev.findPointerIndex(mActivePointId);
@@ -275,11 +337,13 @@ public class RefreshLayout extends ViewGroup{
                 if(pointerIndex < 0)
                     return false;
 
+//                if(mChlidScroll)
+//                    return false;
+
                 mInitDownY = ev.getY(pointerIndex);
 
-                if (canChildScrollUp())
-                    return false;
-
+//                if (canChildScrollUp())
+//                    return false;
                 break;
             case MotionEvent.ACTION_MOVE:
 
@@ -292,10 +356,17 @@ public class RefreshLayout extends ViewGroup{
                     return false;
 
                 float y = ev.getY(pointerIndex);
-                if (canChildScrollUp()){
-                    mInitDownY = y;
-                    return false;
-                }
+//                if(mChlidScroll){
+//                    mChlidScroll = false;
+//                    mInitDownY = y;
+//                    return false;
+//                }
+
+
+//                if (canChildScrollUp()){
+//                    mInitDownY = y;
+//                    return false;
+//                }
 
                 startDragging(y);
 
@@ -320,14 +391,13 @@ public class RefreshLayout extends ViewGroup{
             case MotionEvent.ACTION_CANCEL:
                 mIsBeingDragged = false;
                 mActivePointId = INVALID_POINTER;
-
                 mIsIntercept = false;
                 break;
 
         }
         Log.e(TAG,"onInterceptTouchEvent"+(!mChlidScroll && this.mIsBeingDragged));
         Log.e(TAG,"mState"+mState);
-        return !mChlidScroll && this.mIsBeingDragged;
+        return this.mIsBeingDragged;
     }
 
     private void startDragging(float y){
@@ -357,7 +427,7 @@ public class RefreshLayout extends ViewGroup{
 
 
             mTotalOffset += mOffset;
-            mInitMotionY = ev.getY(newPointerIndex);
+            mInitDownY = mInitMotionY = ev.getY(newPointerIndex);
 
             Log.e(TAG,"mInitMotionY"+mInitMotionY);
         }
@@ -373,7 +443,7 @@ public class RefreshLayout extends ViewGroup{
 //            this.mReturningToStart = false;
 //        }
 
-        if (!this.isEnabled() /*|| this.mReturningToStart*/ || this.canChildScrollUp() || this.mRefreshing) {
+        if (!this.isEnabled() /*|| this.mReturningToStart*/ || this.canChildScrollUp() || this.mRefreshing || mNestedScrollInProgress) {
             return false;
         }
 
@@ -393,21 +463,19 @@ public class RefreshLayout extends ViewGroup{
                 final float y = ev.getY(pointerIndex);
 
 
-
-                //startDragging(y);
+                startDragging(y);
                 if (mIsBeingDragged) {
                     // 加上偏移量
                     final float overscrollTop = (y - mInitMotionY) + mTotalOffset;
 
                     mOffset = (y- mInitMotionY);
                     moveSpinner(overscrollTop);
-                    if (overscrollTop > 0) {
-
-                    } else {
-                        Log.e(TAG,"11111");
-                        mChlidScroll = true;
+                    if(overscrollTop < 0 && (-overscrollTop) > mTouchSlop){
+                        //mChlidScroll = true;
+                        mOverTop = -overscrollTop;
                         return false;
                     }
+
                 }
                 break;
             }
@@ -450,10 +518,11 @@ public class RefreshLayout extends ViewGroup{
                 return false;
             }
             case MotionEvent.ACTION_CANCEL:
+                Log.e(TAG, "ACTION_CANCEL");
                 return false;
 
         }
-        return false;
+        return true;
     }
 
     /*
