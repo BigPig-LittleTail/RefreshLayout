@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
         refreshLayout = findViewById(R.id.testRefreshLayout);
         recyclerView = findViewById(R.id.recyclerView);
 
+
         refreshLayout.setOnRefreshListener(new RefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -69,7 +70,6 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-
 
         ArrayList<Integer> test = new ArrayList<>();
         for(int i = 0;i<10;i++){
