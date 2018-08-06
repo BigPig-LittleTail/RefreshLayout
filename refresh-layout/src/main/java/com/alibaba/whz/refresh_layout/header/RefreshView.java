@@ -24,14 +24,21 @@ class RefreshView extends View {
     // 这个是动画完成的百分比，0到1
     private float mDegree;
 
-
-
+    public int mHeight;
+    public RefreshView(Context context){
+        super(context);
+        mState = State.RESET;
+        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        oval = new RectF();
+        mHeight = 180;
+    }
 
     public RefreshView(Context context, AttributeSet attrs) {
         super(context, attrs);
         mState = State.RESET;
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         oval = new RectF();
+        mHeight = 180;
 
     }
 
@@ -74,6 +81,11 @@ class RefreshView extends View {
         mPaint.setStrokeWidth(big);
     }
 
+    @Override
+    public void onMeasure(int with,int height){
+        super.onMeasure(with,height);
+    }
+
 
     @Override
     public void onDraw(Canvas canvas){
@@ -89,7 +101,7 @@ class RefreshView extends View {
             y = getHeight()*mPercent/2.0f - getWidth()/2.0f;
         }
 
-        canvas.drawColor(Color.WHITE);
+        canvas.drawColor(0x00000000);
 
         switch (mState){
             case PULL:

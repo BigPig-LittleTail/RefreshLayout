@@ -7,6 +7,6 @@ public interface RefreshHeaderFollowInterface {
     void complete();
     void pullFull();
     void fail();
-
     boolean needPercent();
+    int getHeaderHeight();
 }

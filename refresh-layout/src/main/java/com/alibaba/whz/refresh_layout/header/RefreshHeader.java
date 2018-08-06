@@ -23,7 +23,7 @@ public class RefreshHeader extends FrameLayout implements RefreshHeaderFollowInt
     private View loadingIcon;
 
     public RefreshHeader(Context context) {
-        this(context, null);
+        super(context, null);
     }
 
     public RefreshHeader(Context context, AttributeSet attrs) {
@@ -95,5 +95,10 @@ public class RefreshHeader extends FrameLayout implements RefreshHeaderFollowInt
     @Override
     public boolean needPercent(){
         return false;
+    }
+
+    @Override
+    public int getHeaderHeight(){
+        return getHeight();
     }
 }

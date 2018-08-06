@@ -79,4 +79,9 @@ public class CoolRefreshHeader extends FrameLayout implements RefreshHeaderFollo
     public boolean needPercent(){
         return true;
     }
+
+    @Override
+    public int getHeaderHeight(){
+        return mRefreshView.getHeight();
+    }
 }
