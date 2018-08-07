@@ -6,11 +6,12 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 import com.alibaba.whz.refresh_layout.State;
 
-class RefreshView extends View {
+class ProgressView extends View {
 
     private Paint mPaint;
 
@@ -25,7 +26,7 @@ class RefreshView extends View {
     private float mDegree;
 
     public int mHeight;
-    public RefreshView(Context context){
+    public ProgressView(Context context){
         super(context);
         mState = State.RESET;
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -33,7 +34,7 @@ class RefreshView extends View {
         mHeight = 180;
     }
 
-    public RefreshView(Context context, AttributeSet attrs) {
+    public ProgressView(Context context, AttributeSet attrs) {
         super(context, attrs);
         mState = State.RESET;
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -89,6 +90,7 @@ class RefreshView extends View {
 
     @Override
     public void onDraw(Canvas canvas){
+        Log.e("onDraw","onDraw");
         float y = getHeight() * mPercent / 4.0f;
         float x = (getWidth() - y*2.0f) / 2.0f;
 
@@ -102,6 +104,8 @@ class RefreshView extends View {
         }
 
         canvas.drawColor(0x00000000);
+
+        //canvas.drawColor(0x11111111);
 
         switch (mState){
             case PULL:

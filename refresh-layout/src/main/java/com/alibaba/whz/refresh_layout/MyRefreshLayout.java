@@ -16,14 +16,16 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.Scroller;
 
-import com.alibaba.whz.refresh_layout.header.TestHeader;
+import com.alibaba.whz.refresh_layout.header.Header;
 
 
-public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
+public class MyRefreshLayout extends ViewGroup implements NestedScrollingParent{
 
-    public static final String TAG = "RefreshLayout";
+    public static final String TAG = "MyRefreshLayout";
     private static final int INVALID_POINTER = -1;
+    
     private View mHeader;
+    private RefreshHeaderInterface refreshHeaderInterface;
     private View mTarget;
 
     private Scroller mScroller;
@@ -33,7 +35,7 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
 
     // 最小滑动距离
     private int mTouchSlop;
-    private int mHeaderHeight;
+    private float mHeaderHeight = -1;
 
     // 活动手指id
     private int mActivePointId = -1;
@@ -49,9 +51,9 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
 
 
     // 刷新监控
-    private RefreshLayout.OnRefreshListener mOnRefreshListener;
+    private MyRefreshLayout.OnRefreshListener mOnRefreshListener;
     // 子View是否能够滚动的回调
-    private RefreshLayout.OnChildScrollUpCallback mChildScrollUpCallback;
+    private MyRefreshLayout.OnChildScrollUpCallback mChildScrollUpCallback;
 
 
     private boolean mWhetherHeaderNeedPercent;
@@ -78,18 +80,18 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
     private NestedScrollingParentHelper mParentHelper;
 
 
-    public void setOnRefreshListener(RefreshLayout.OnRefreshListener listener){
+    public void setOnRefreshListener(MyRefreshLayout.OnRefreshListener listener){
         this.mOnRefreshListener = listener;
 
     }
 
 
     /*设置刷新状态函数。
-    * refreshing和mRefreshing实际上只有两个可能
-    * true和false执行if，即本来不在刷新态，通过函数调用进入刷新态，直接改变状态到刷新态
-    * false和true执行else，本来在刷新态，置为非刷新态，就进入刷新完成状态
-    *
-    * */
+     * refreshing和mRefreshing实际上只有两个可能
+     * true和false执行if，即本来不在刷新态，通过函数调用进入刷新态，直接改变状态到刷新态
+     * false和true执行else，本来在刷新态，置为非刷新态，就进入刷新完成状态
+     *
+     * */
     public void setRefreshing(boolean refreshing,boolean refreshResult){
         if (refreshing && this.mRefreshing != refreshing) {
             this.mRefreshing = refreshing;
@@ -98,8 +100,7 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
         }
         else{
             if(this.mRefreshing != refreshing){
-                this.enSureTarget();
-                Log.e(TAG,"transrefreshing"+refreshing);
+                this.enSureTarget();;
                 this.mRefreshing = refreshing;
                 if(mState == State.LOADING){
                     if(refreshResult){
@@ -128,8 +129,29 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
         }
     }
 
-    public void setHeader(View view){
-        if(view != null && view != mHeader){
+
+
+    public void setHeader(RefreshHeaderInterface refreshHeaderInterface){
+        if(refreshHeaderInterface == null)
+            return;
+        View view = refreshHeaderInterface.sendHeaderView(getContext());
+        if(view == null)
+            return;
+        this.refreshHeaderInterface = refreshHeaderInterface;
+        
+        
+        if(view.getParent() != null)
+            ((ViewGroup)view.getParent()).removeView(view);
+        
+        mHeaderHeight = refreshHeaderInterface.sendHeaderHeight();
+        mTotalDragDistance = refreshHeaderInterface.sendHeightWhenRefreshing();
+        
+
+        if(mHeader == null){
+            mHeader = view;
+            addView(mHeader);
+        }
+        else{
             removeView(mHeader);
             mHeader = view;
             addView(mHeader);
@@ -137,19 +159,20 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
     }
 
 
-    public RefreshLayout(Context context,AttributeSet attrs) {
+    public MyRefreshLayout(Context context,AttributeSet attrs) {
         super(context,attrs);
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 
         // 在这里可以该头部类型，也可以用setHeader在外部更换
-        //RefreshHeader refreshHeader = new RefreshHeader(context);
-        //CoolRefreshHeader refreshHeader = new CoolRefreshHeader(context);
-        TestHeader refreshHeader = new TestHeader(context);
-        setHeader(refreshHeader);
+        //RefreshHeaderInterface refreshHeaderInterface = new Header(context);
+        RefreshHeaderInterface refreshHeaderInterface = new Header(context);
+        setHeader(refreshHeaderInterface);
+        
         mRefreshing = false;
         mWhetherHeaderNeedPercent = true;
-        mScroller= new Scroller(getContext());
+        mScroller= new Scroller(context);
         mParentHelper = new NestedScrollingParentHelper(this);
+        
     }
 
 
@@ -163,14 +186,8 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
 
         mTarget.measure(MeasureSpec.makeMeasureSpec(getMeasuredWidth() - getPaddingLeft() - getPaddingRight(),MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(getMeasuredHeight() - getPaddingTop() - getPaddingBottom(),MeasureSpec.EXACTLY));
-
         mHeader.measure(MeasureSpec.makeMeasureSpec(getMeasuredWidth() - getPaddingLeft() - getPaddingRight(),MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(getMeasuredHeight() - getPaddingTop() - getPaddingBottom(),MeasureSpec.EXACTLY));
-
-        mHeaderHeight = getMeasuredHeight();
-
-        mTotalDragDistance = ((RefreshHeaderFollowInterface)mHeader).getHeaderHeight();
-        Log.e("mTotalDragDistance","mTotalDragDistance"+mTotalDragDistance);
+                MeasureSpec.makeMeasureSpec((int)mHeaderHeight,MeasureSpec.EXACTLY));
 
     }
 
@@ -196,8 +213,8 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
         child.layout(childLeft, childTop, childLeft + childWidth, childTop + childHeight);
 
         int headerWidth = mHeader.getMeasuredWidth();
-        int headerHeight = mHeader.getMeasuredHeight();
-        mHeader.layout((width/2 - headerWidth/2),-headerHeight,(width/2 + headerWidth/2),0);
+        mHeader.layout((width/2 - headerWidth/2),-(int)mHeaderHeight,(width/2 + headerWidth/2),0);
+        Log.e(TAG,"myHeader"+mHeader);
     }
 
 
@@ -211,8 +228,6 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
     @Override
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed){
         Log.e(TAG,"onNestedPreScroll");
-        Log.e(TAG,"getScrollY"+getScrollY());
-        Log.e(TAG,"mState"+mState);
         if((getScrollY() == 0 && dy > 0) || canChildScrollUp() || mState == State.LOADING){
             Log.e(TAG,"dy"+dy);
             mTotalUnconsumed = 0;
@@ -250,55 +265,13 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
         return super.dispatchTouchEvent(ev);
     }
 
-
-//    @Override
-//    public boolean dispatchTouchEvent(MotionEvent ev){
-//        Log.e(TAG,"dispatchTouchEvent+canChildScrollUp()+mChildScroll"+canChildScrollUp()+mChlidScroll);
-//
-//        if(canChildScrollUp() || mChlidScroll){
-//            if(mChlidScroll){
-//                Log.e(TAG,"action"+ev.getActionMasked());
-//                if(ev.getActionMasked() == MotionEvent.ACTION_MOVE && mOverTop > mTouchSlop){
-//                    //ev.setAction(MotionEvent.ACTION_DOWN);
-//                    if(mOverTop > mTouchSlop){
-//                        ev.setAction(MotionEvent.ACTION_DOWN);
-//                        ev.setLocation(0,0);
-//                        mOverTop = 0;
-//                    }
-//                    else{
-//                        ev.setAction(MotionEvent.ACTION_MOVE);
-//                    }
-//                }
-//                //onTouchEvent(ev);
-//            }else{
-//                onInterceptTouchEvent(ev);
-//            }
-//            return super.dispatchTouchEvent(ev);
-//        }
-//        else{
-//            Log.e(TAG,"mIsBeingDragged && mIsIntercept"+mIsBeingDragged+mIsIntercept);
-//            if(mIsBeingDragged && mIsIntercept){
-//                return onTouchEvent(ev);
-//            }
-//            else {
-//                if(!mIsIntercept){
-//                    mIsIntercept = onInterceptTouchEvent(ev);
-//                }
-//                return  super.dispatchTouchEvent(ev);
-//            }
-//        }
-//    }
-
-
+    
     @Override
     public boolean onInterceptTouchEvent (MotionEvent ev){
         Log.e(TAG,"onInterceptTouchEvent");
 
         int action = ev.getActionMasked();
-
-//        if (this.mReturningToStart && action == 0) {
-//            this.mReturningToStart = false;
-//        }
+        
 
         // 如果isEnabled为false，或者子view能滚动，或者正在刷新，不拦截touch事件
         if (!this.isEnabled() /*|| this.mReturningToStart*/  || this.mRefreshing || mNestedScrollInProgress
@@ -327,13 +300,8 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
                 if(pointerIndex < 0)
                     return false;
 
-//                if(mChlidScroll)
-//                    return false;
-
                 mInitDownY = ev.getY(pointerIndex);
 
-//                if (canChildScrollUp())
-//                    return false;
                 break;
             case MotionEvent.ACTION_MOVE:
 
@@ -373,7 +341,6 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
                 break;
 
         }
-        Log.e(TAG,"mState"+mState);
         return this.mIsBeingDragged;
     }
 
@@ -383,7 +350,6 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
         //Log.e(TAG,"yDiff"+yDiff);
         if(yDiff > mTouchSlop && !mIsBeingDragged && mState == State.RESET){
             mInitMotionY = mInitDownY + mTouchSlop;
-
             mIsBeingDragged = true;
             changeState(State.PULL);
         }
@@ -413,11 +379,7 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
     public boolean onTouchEvent(MotionEvent ev){
         Log.e(TAG,"onTouchEvent");
         int action = ev.getActionMasked();
-
-//        if (this.mReturningToStart && action == 0) {
-//            this.mReturningToStart = false;
-//        }
-
+        
         if (!this.isEnabled() /*|| this.mReturningToStart*/ || this.canChildScrollUp() || this.mRefreshing || mNestedScrollInProgress) {
             return false;
         }
@@ -439,12 +401,10 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
 
                 startDragging(y);
                 if (mIsBeingDragged) {
-                    // 加上偏移量
                     final float overscrollTop = ((y - mInitMotionY) + mTotalOffset);
 
                     mOffset = (y- mInitMotionY);
                     moveSpinner(overscrollTop);
-
                 }
                 break;
             }
@@ -493,73 +453,82 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
     }
 
     /*
-    *  moveSpinner和finishSpinner可以看为状态机
-    *  RESET状态到PULL的触发条件是ACTION_MOVE
-    *  PULL到RESET状态的触发条件是手指up（偏移量不够）
-    *  PULL状态到PULLFULL的触发条件是偏移量达到最大值
-    *  PULLFULL状态到PULL状态的触发条件是手指上划偏移量减少
-    *  PULLFULL状态到LOADING状态的触发条件是手指up
-    *  LOADING到COMPLETE的触发条件是回调Onrefresh
-    * */
+     *  moveSpinner和finishSpinner可以看为状态机
+     *  RESET状态到PULL的触发条件是ACTION_MOVE
+     *  PULL到RESET状态的触发条件是手指up（偏移量不够）
+     *  PULL状态到PULLFULL的触发条件是偏移量达到最大值
+     *  PULLFULL状态到PULL状态的触发条件是手指上划偏移量减少
+     *  PULLFULL状态到LOADING状态的触发条件是手指up
+     *  LOADING到COMPLETE的触发条件是回调Onrefresh
+     * */
     private void moveSpinner(float overscrollTop){
         //Log.e(TAG,Float.toString(overscrollTop));
 
+        if(overscrollTop < 0){
+            scrollTo(0,0);
+            changeState(State.RESET);
+            return;
+        }
+
+
+        float canDrag = Math.min(mHeaderHeight,mTotalDragDistance);
 
         Log.e(TAG,"overscrollTop"+overscrollTop);
 
+
         switch (mState) {
             case PULL:
-                if(overscrollTop > 0){
-                    if(overscrollTop < mTotalDragDistance) {
-                        mPercent = overscrollTop / mTotalDragDistance;
-                        if(mWhetherHeaderNeedPercent)
-                            changeState(mState);
-                        scrollTo(0,-(int)overscrollTop);
-                    }
-                    else{
-                        changeState(State.PULLFULL);
-                    }
+                if(overscrollTop < canDrag) {
+                    mPercent = overscrollTop / canDrag;
+                    if(mWhetherHeaderNeedPercent)
+                        changeState(mState);
+                    scrollTo(0,-(int)overscrollTop);
                 }
                 else{
-                   scrollTo(0,0);
-                   changeState(State.RESET);
+                    changeState(State.PULLFULL);
                 }
                 break;
             case PULLFULL:
-                if(overscrollTop > 0) {
-                    if (overscrollTop < mTotalDragDistance) {
-                        scrollTo(0, -(int) overscrollTop);
-                        changeState(State.PULL);
-                    } else {
-                        float x;
-                        if(overscrollTop < 1.25f* mTotalDragDistance){
-                            x = 0.8f*(overscrollTop - mTotalDragDistance) + mTotalDragDistance;
-                        }
-                        else if(overscrollTop < 1.65f *mTotalDragDistance){
-                            x = 1.2f*mTotalDragDistance + (overscrollTop - 1.25f *mTotalDragDistance) * 0.5f;
-                        }
-                        else if(overscrollTop < 2.15f*mTotalDragDistance){
-                            x = 1.4f*mTotalDragDistance + (overscrollTop - 1.65f*mTotalDragDistance) * 0.4f;;
-                        }
-                        else if(overscrollTop < 3.15f*mTotalDragDistance){
-                            x = 1.6f *mTotalDragDistance + (overscrollTop - 2.15f*mTotalDragDistance) * 0.2f;
-                        }
-                        else if(overscrollTop < 5.15f*mTotalDragDistance){
-                            x = 1.8f *mTotalDragDistance + (overscrollTop - 3.15f*mTotalDragDistance) *0.1f;
-                        }
-                        else{
-                            x = 2.0f * mTotalDragDistance;
-                        }
-                        scrollTo(0, -(int) x);
-                    }
+                if (overscrollTop < canDrag) {
+                    scrollTo(0, -(int) overscrollTop);
+                    changeState(State.PULL);
+                } else {
+                    float dampingY = dampingFunc(overscrollTop, canDrag);
+                    scrollTo(0, -(int)dampingY);
                 }
-                else{
-                    scrollTo(0,0);
-                    changeState(State.RESET);
-                }
+
                 break;
         }
 
+    }
+
+    private float dampingFunc(float overscrollTop, float canDrag) {
+        float dampingY = mHeaderHeight;
+        if(canDrag < mHeaderHeight){
+            if(overscrollTop < (mTotalDragDistance + 0.25f*(mHeaderHeight - mTotalDragDistance))){
+                dampingY = 0.8f*(overscrollTop - mTotalDragDistance) + mTotalDragDistance;
+            }
+            else if(overscrollTop < (mTotalDragDistance + 0.65f*(mHeaderHeight - mTotalDragDistance))){
+                dampingY = (mTotalDragDistance + 0.2f*(mHeaderHeight - mTotalDragDistance))
+                        + (overscrollTop - (mTotalDragDistance + 0.25f*(mHeaderHeight - mTotalDragDistance))) * 0.5f;
+            }
+            else if(overscrollTop < (mTotalDragDistance + 1.15f*(mHeaderHeight - mTotalDragDistance))){
+                dampingY = (mTotalDragDistance + 0.4f*(mHeaderHeight - mTotalDragDistance))
+                        + (overscrollTop - (mTotalDragDistance + 0.65f*(mHeaderHeight - mTotalDragDistance))) * 0.4f;;
+            }
+            else if(overscrollTop < (mTotalDragDistance + 2.15f*(mHeaderHeight - mTotalDragDistance))){
+                dampingY = (mTotalDragDistance + 0.6f*(mHeaderHeight - mTotalDragDistance))
+                        + (overscrollTop - (mTotalDragDistance + 1.15f*(mHeaderHeight - mTotalDragDistance))) * 0.2f;
+            }
+            else if(overscrollTop < (mTotalDragDistance + 4.15f*(mHeaderHeight - mTotalDragDistance))){
+                dampingY = (mTotalDragDistance + 0.8f*(mHeaderHeight - mTotalDragDistance))
+                        + (overscrollTop - (mTotalDragDistance + 2.15f*(mHeaderHeight - mTotalDragDistance))) *0.1f;
+            }
+            else{
+                dampingY = (mTotalDragDistance + 1.0f*(mHeaderHeight - mTotalDragDistance));
+            }
+        }
+        return dampingY;
     }
 
     @Override
@@ -568,13 +537,11 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
         if (mScroller.computeScrollOffset()) {
             scrollTo(mScroller.getCurrX(),mScroller.getCurrY());
             mPercent = (-mScroller.getCurrY()) / mTotalDragDistance;
-            Log.e(TAG,"mPercent"+mPercent);
             if (mScroller.getCurrX() == getScrollX()
                     && mScroller.getCurrY() == getScrollY() ) {
                 if(mWhetherHeaderNeedPercent && mState == State.PULL){
                     changeState(mState);
-                    Log.e(TAG,"mState"+mState);
-                    }
+                }
                 invalidate();
             }
         }
@@ -593,7 +560,7 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
                     changeState(State.RESET);
                 break;
             case PULLFULL:
-                mScroller.startScroll(0,getScrollY(),0,-getScrollY() - (int)mTotalDragDistance);
+                mScroller.startScroll(0,getScrollY(),0,-getScrollY() - (int)Math.min(mHeaderHeight,mTotalDragDistance));
                 invalidate();
                 mRefreshing = true;
                 changeState(State.LOADING);
@@ -606,29 +573,27 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
     private void changeState(State state) {
         this.mState = state;
 
-        RefreshHeaderFollowInterface refreshHeader = this.mHeader instanceof RefreshHeaderFollowInterface ?((RefreshHeaderFollowInterface) this.mHeader):null;
-        if(refreshHeader != null){
-            mWhetherHeaderNeedPercent = refreshHeader.needPercent();
+        mWhetherHeaderNeedPercent = refreshHeaderInterface.sendWeatherNeedPercent();
             switch (state) {
                 case RESET:
-                    refreshHeader.reset();
+                    refreshHeaderInterface.reset();
                     break;
                 case PULL:
-                    refreshHeader.pull(mPercent);
+                    Log.e(TAG,"mPercent"+mPercent);
+                    refreshHeaderInterface.pull(mPercent);
                     break;
                 case PULLFULL:
-                    refreshHeader.pullFull();
+                    refreshHeaderInterface.pullFull();
                     break;
                 case LOADING:
-                    refreshHeader.refreshing();
+                    refreshHeaderInterface.refreshing();
                     break;
                 case COMPLETE:
-                    refreshHeader.complete();
+                    refreshHeaderInterface.complete();
                     break;
                 case FAIL:
-                    refreshHeader.fail();
+                    refreshHeaderInterface.fail();
             }
-        }
 
     }
 
@@ -637,9 +602,9 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
     private Runnable delayToScrollTopRunnable = new Runnable() {
         @Override
         public void run() {
-           mScroller.startScroll(0,getScrollY(),0,-getScrollY());
-           invalidate();
-           changeState(State.RESET);
+            mScroller.startScroll(0,getScrollY(),0,-getScrollY());
+            invalidate();
+            changeState(State.RESET);
         }
     };
 
@@ -655,12 +620,12 @@ public class RefreshLayout extends ViewGroup implements NestedScrollingParent{
 
     // 子view可以告知refreshlayout它是否可以刷新
 
-    public void setOnChildScrollUpCallback(@Nullable RefreshLayout.OnChildScrollUpCallback callback) {
+    public void setOnChildScrollUpCallback(@Nullable MyRefreshLayout.OnChildScrollUpCallback callback) {
         this.mChildScrollUpCallback = callback;
     }
 
     public interface OnChildScrollUpCallback {
-        boolean canChildScrollUp(@NonNull RefreshLayout var1, @Nullable View var2);
+        boolean canChildScrollUp(@NonNull MyRefreshLayout var1, @Nullable View var2);
     }
 
     public interface OnRefreshListener {
