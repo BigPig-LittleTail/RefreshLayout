@@ -52,7 +52,7 @@ public class Header extends ViewGroup implements RefreshHeaderInterface{
         Log.e("mProgressView","mProgressView"+mProgressView);
     }
     @Override
-    public View sendHeaderView(Context context){
+    public View sendHeaderView(ViewGroup parent){
         return this;
     }
     @Override
@@ -63,10 +63,6 @@ public class Header extends ViewGroup implements RefreshHeaderInterface{
     public int sendHeaderHeight(){
         //return getMeasuredHeight();
         return mHeightWhenRefreshing * 2;
-    }
-    @Override
-    public boolean sendWeatherNeedPercent(){
-        return true;
     }
 
 

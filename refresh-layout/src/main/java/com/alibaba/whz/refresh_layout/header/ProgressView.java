@@ -90,7 +90,7 @@ class ProgressView extends View {
 
     @Override
     public void onDraw(Canvas canvas){
-        Log.e("onDraw","onDraw");
+        //Log.e("onDraw","onDraw");
         float y = getHeight() * mPercent / 4.0f;
         float x = (getWidth() - y*2.0f) / 2.0f;
 
@@ -112,43 +112,13 @@ class ProgressView extends View {
             case PULLFULL:{
                 mPaint.setStyle(Paint.Style.STROKE);
                 setColorAndBig(Color.BLUE,3.0f);
-                oval.set( x, y+(1-mPercent)*getHeight(),
-                        getWidth() - x, getHeight() - y);
+                oval.set( x, y+(1-mPercent)*getHeight(),getWidth() - x, getHeight() - y);
                 canvas.drawArc(oval,270,270*mPercent,false,mPaint);
                 break;
             }
             case LOADING:{
                 mPaint.setStyle(Paint.Style.STROKE);
-                /*
-                * 下面注释的代码，是第一次转菊花的动画实现，我觉得很有纪念意义，就没有删掉
-                * */
-/*                if(mNumType == 0)
-                {
-                    setColorAndBig(Color.BLUE,3.0f);
-                    oval.set(x, y,
-                            getWidth() - x, getHeight() - y);
-                    canvas.drawArc(oval, 270, 360, false, mPaint);
-
-                    setColorAndBig(Color.WHITE,4.0f);
-                    canvas.drawArc(oval, 270, mDegree*360, false, mPaint);
-                    if(mDegree == 1.0f){
-                        mNumType = 1;
-                    }
-                }
-                else{
-                    setColorAndBig(Color.WHITE,4.0f);
-                    oval.set(x, y,
-                            getWidth() - x, getHeight() - y);
-                    canvas.drawArc(oval, 270, 360, false, mPaint);
-
-                    setColorAndBig(Color.BLUE,3.0f);
-                    canvas.drawArc(oval, 270, mDegree*360, false, mPaint);
-                    if(mDegree == 1.0f){
-                        mNumType = 0;
-                    }
-                }*/
-                oval.set(x, y,
-                        getWidth() - x, getHeight() - y);
+                oval.set(x, y, getWidth() - x, getHeight() - y);
                 /*
                 * mNumType = 0的时候是转的第一圈，也就是蓝色圈有270度的时候，转完将nNumType设置为1,
                 * mNumType = 1的时候转的圈分3部分，第一部分，蓝色圈出180度，第二部分，整个180度圆圈头移动到圈头，第三部分，180度圈尾部追回
@@ -189,8 +159,7 @@ class ProgressView extends View {
                 * */
                 mPaint.setStyle(Paint.Style.FILL);
                 setColorAndBig(Color.BLUE,3.0f);
-                oval.set(x, y,
-                        getWidth() - x, getHeight() - y);
+                oval.set(x, y, getWidth() - x, getHeight() - y);
                 canvas.drawArc(oval, 270, 360, true, mPaint);
                 setColorAndBig(Color.WHITE,3.0f);
                 canvas.drawCircle(x+y,2.5f*y,2.0f,mPaint);
@@ -204,8 +173,7 @@ class ProgressView extends View {
                 * */
                 mPaint.setStyle(Paint.Style.FILL);
                 setColorAndBig(Color.BLUE,3.0f);
-                oval.set(x, y,
-                        getWidth() - x, getHeight() - y);
+                oval.set(x, y, getWidth() - x, getHeight() - y);
                 canvas.drawArc(oval, 270, 360, true, mPaint);
                 setColorAndBig(Color.WHITE,3.0f);
                 canvas.drawLine(x+y/2.0f,1.5f*y,x+1.5f*y,2.5f*y,mPaint);

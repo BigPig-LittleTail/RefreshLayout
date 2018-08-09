@@ -7,14 +7,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.alibaba.whz.refresh_layout.MyRefreshLayout;
-import com.alibaba.whz.refresh_layout.header.RefreshHeaderNotView;
+import com.alibaba.whz.refresh_layout.TryRefreshLayout;
+import com.alibaba.whz.refresh_layout.header.Header;
+import com.alibaba.whz.refresh_layout.header.RefreshHeader;
 import com.example.whz.refreshlayout.R;
 
 import java.util.ArrayList;
@@ -22,8 +22,7 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-
-    private MyRefreshLayout refreshLayout;
+    private TryRefreshLayout refreshLayout;
 
     private RecyclerView recyclerView;
 
@@ -39,9 +38,11 @@ public class MainActivity extends AppCompatActivity {
         refreshLayout = findViewById(R.id.testRefreshLayout);
         recyclerView = findViewById(R.id.recyclerView);
 
-        refreshLayout.setOnRefreshListener(new MyRefreshLayout.OnRefreshListener() {
+
+        refreshLayout.setOnRefreshListener(new TryRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
+
                 mHandler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -62,8 +63,8 @@ public class MainActivity extends AppCompatActivity {
                         k++;
                         testAdapter m = new testAdapter(test);
                         recyclerView.setAdapter(m);
-
                         refreshLayout.setRefreshing(false,true);
+
                     }
                 },6000);
 

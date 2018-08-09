@@ -6,4 +6,16 @@
     android:layout_height="match_parent"
     tools:context=".activity.SecondActivity">
 
+    <com.alibaba.whz.refresh_layout.MyRefreshLayout
+        android:id="@+id/RefreshLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <ListView
+            android:id="@+id/listView"
+            android:background="@color/colorAccent"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+    </com.alibaba.whz.refresh_layout.MyRefreshLayout>
+
 </android.support.constraint.ConstraintLayout>
