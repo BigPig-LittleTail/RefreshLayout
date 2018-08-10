@@ -1,18 +1,16 @@
-package com.alibaba.whz.refresh_layout;
+package com.alibaba.whz.refresh_layout.header;
 
-import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 
 public interface RefreshHeaderInterface {
     View sendHeaderView(ViewGroup parent);
-    int sendHeaderHeight();
-    int sendHeightWhenRefreshing();
+    float sendHeaderHeightDp();
+    float sendHeightDpWhenRefreshing();
 
     void reset();
-    void pull(float x);
+    void pull(float pullPercent);
     void pullFull();
     void refreshing();
-    void complete();
-    void fail();
+    void showRefreshResult(boolean refreshResult);
 }

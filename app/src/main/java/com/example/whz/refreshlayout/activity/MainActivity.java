@@ -2,7 +2,6 @@ package com.example.whz.refreshlayout.activity;
 
 import android.content.Intent;
 import android.os.Handler;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -12,8 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.alibaba.whz.refresh_layout.TryRefreshLayout;
-import com.alibaba.whz.refresh_layout.header.Header;
+import com.alibaba.whz.refresh_layout.EasyRefreshLayout;
 import com.alibaba.whz.refresh_layout.header.RefreshHeader;
 import com.example.whz.refreshlayout.R;
 
@@ -22,14 +20,14 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TryRefreshLayout refreshLayout;
+    private EasyRefreshLayout refreshLayout;
 
     private RecyclerView recyclerView;
 
-    Handler mHandler = new Handler();
+    private Handler mHandler = new Handler();
 
-    ArrayList<Integer> test;
-    static int k = 0;
+    private ArrayList<Integer> test;
+    private static int k = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,8 +36,9 @@ public class MainActivity extends AppCompatActivity {
         refreshLayout = findViewById(R.id.testRefreshLayout);
         recyclerView = findViewById(R.id.recyclerView);
 
+        //refreshLayout.setHeader(new RefreshHeader());
 
-        refreshLayout.setOnRefreshListener(new TryRefreshLayout.OnRefreshListener() {
+        refreshLayout.setOnRefreshListener(new EasyRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
 
@@ -66,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
                         refreshLayout.setRefreshing(false,true);
 
                     }
-                },6000);
+                },2000);
 
 
             }

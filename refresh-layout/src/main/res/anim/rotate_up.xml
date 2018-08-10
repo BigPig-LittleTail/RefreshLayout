@@ -6,4 +6,5 @@
     android:interpolator="@android:anim/linear_interpolator"
     android:pivotX="50%"
     android:pivotY="50%"
+    android:repeatCount="0"
     android:toDegrees="180" />
